@@ -1,0 +1,933 @@
+<!--
+  Lagoons Property Finder v1.0
+  © 2026 Ahmed Aladdin (أحمد علاء الدين). All rights reserved.
+  Licensed under the Lagoons Property Finder License (see LICENSE). The credit line must stay visible.
+-->
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Lagoons Property Finder</title>
+<script src="config/agent.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&family=Readex+Pro:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+/* Layout: search + language switch + cluster chips on top; unit/cluster sheet beside one map viewer that moves from the master plan into each cluster plan. */
+:root{
+  --bg:#eef3f2; --surface:#ffffff; --surface-2:#e4ecea; --line:#cfdad7;
+  --fg:#13201e; --muted:#566864; --accent:#0b6670; --accent-soft:#d3ebed;
+  --sand:#b7832a; --up:#1c7a45; --down:#b3392f; --marker:#e0382b; --warn-soft:#f6ecd8;
+  --f-display:"Readex Pro","IBM Plex Sans Arabic","Noto Sans SC",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans Arabic","Noto Sans SC",system-ui,"Segoe UI",Tahoma,sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1716; --surface:#15211f; --surface-2:#1c2a27; --line:#2b3c38;
+  --fg:#e5eeec; --muted:#91a5a0; --accent:#4fb6bf; --accent-soft:#143a3d;
+  --sand:#e0b25e; --up:#5fca8b; --down:#f07a6f; --marker:#ff5a4c; --warn-soft:#3a3018; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1716; --surface:#15211f; --surface-2:#1c2a27; --line:#2b3c38;
+  --fg:#e5eeec; --muted:#91a5a0; --accent:#4fb6bf; --accent-soft:#143a3d;
+  --sand:#e0b25e; --up:#5fca8b; --down:#f07a6f; --marker:#ff5a4c; --warn-soft:#3a3018; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.6;margin:0}
+.wrap{max-width:1320px;margin:0 auto;padding-inline:18px;padding-block:18px 48px;display:grid;gap:16px}
+.wrap[lang="zh"]{--f-display:"Noto Sans SC",system-ui,sans-serif;--f-body:"Noto Sans SC",system-ui,sans-serif}
+.wrap[lang="en"]{--f-display:"Readex Pro",system-ui,sans-serif;--f-body:"IBM Plex Sans Arabic",system-ui,sans-serif}
+header{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px}
+header>div{min-width:0;flex:1 1 420px}
+h1{font-family:var(--f-display);font-size:1.6rem;margin:0;line-height:1.2;text-wrap:balance}
+h1 span{color:var(--accent)}
+.sub{color:var(--muted);font-size:.9rem;margin:2px 0 0}
+.lang{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface);flex:none}
+.lang button{font:600 .9rem var(--f-body);border:0;background:none;color:var(--fg);padding:7px 14px;cursor:pointer}
+.lang button+button{border-inline-start:1px solid var(--line)}
+.lang button[aria-pressed="true"]{background:var(--accent);color:var(--surface)}
+.lang button[data-l="ar"]{font-family:"IBM Plex Sans Arabic",sans-serif}
+.lang button[data-l="zh"]{font-family:"Noto Sans SC",sans-serif}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
+.search{display:grid;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}
+.srow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.srow label{font-weight:600}
+#q{font-family:var(--f-num);font-size:1.15rem;padding:8px 12px;border:1.5px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);width:12ch;direction:ltr;text-transform:uppercase}
+#q:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn{font-family:var(--f-body);font-weight:600;border:0;border-radius:8px;padding:9px 16px;background:var(--accent);color:var(--surface);cursor:pointer}
+.hint{color:var(--muted);font-size:.85rem}
+.err{color:var(--down);font-weight:600;font-size:.88rem}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-family:var(--f-num);font-size:.85rem;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);border-radius:999px;padding:3px 10px;cursor:pointer}
+.chip:hover{border-color:var(--accent)}
+.clusters{display:flex;gap:6px;flex-wrap:wrap}
+.cl{display:inline-flex;align-items:center;gap:6px;font:600 .85rem var(--f-body);border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;padding:4px 10px;cursor:pointer}
+.cl i{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.cl[data-s="dld"] i{background:var(--up)} .cl[data-s="num"] i{background:var(--accent)} .cl[data-s="plan"] i{background:var(--sand)}
+.legend,.cl i{display:none!important}
+.cl[aria-current="true"]{background:var(--accent);color:var(--surface);border-color:var(--accent)}
+.cl small{font-family:var(--f-num);font-weight:500;opacity:.75}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.8rem;color:var(--muted)}
+.legend span{display:inline-flex;gap:6px;align-items:center}
+.legend i{width:8px;height:8px;border-radius:50%}
+.main{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.35fr);gap:16px;align-items:start}
+@media (max-width:920px){.main{grid-template-columns:minmax(0,1fr)}.viewer-card{order:-1}}
+.sheet{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;display:grid;grid-template-columns:minmax(0,1fr);gap:14px;min-width:0}
+.sheet>*{min-width:0}
+.unit-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.unit-id{font-family:var(--f-num);font-size:2.2rem;font-weight:600;line-height:1}
+.cname{font-family:var(--f-display);font-size:1.7rem;font-weight:600;line-height:1.15}
+.proj{color:var(--muted);font-size:.9rem;margin-top:6px}
+.tags{display:flex;gap:6px;flex-wrap:wrap}
+.tag{font-size:.8rem;font-weight:600;padding:3px 10px;border-radius:6px;background:var(--accent-soft);color:var(--accent)}
+.tag.sand{background:transparent;border:1px solid var(--sand);color:var(--sand)}
+.figs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.fig{background:var(--surface-2);border-radius:10px;padding:11px 13px;display:grid;gap:2px;min-width:0}
+.fig .lbl{font-size:.78rem;color:var(--muted);font-weight:600}
+.fig .val{font-family:var(--f-num);font-size:1.18rem;font-weight:600;direction:ltr;text-align:end;font-variant-numeric:tabular-nums}
+.fig .note{font-size:.76rem;color:var(--muted)}
+.fig.key{background:var(--accent-soft)} .fig.key .val{color:var(--accent)}
+.fig.est{background:var(--warn-soft);outline:1px dashed var(--down)} .fig.est .val{color:var(--down)} .fig.est .lbl,.fig.est .note{color:var(--down)}
+.estwhy{color:var(--down);font-size:.76rem;line-height:1.5;margin:0}
+.up{color:var(--up)} .down{color:var(--down)}
+.box{background:var(--warn-soft);border-radius:10px;padding:11px 13px;font-size:.88rem}
+h2{font-family:var(--f-display);font-size:1.05rem;margin:0}
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.86rem}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:start;white-space:nowrap}
+th{color:var(--muted);font-weight:600;font-size:.77rem}
+td.n{font-family:var(--f-num);direction:ltr;text-align:end;font-variant-numeric:tabular-nums}
+.pill{font-size:.74rem;font-weight:600;padding:1px 8px;border-radius:999px;border:1px solid var(--line)}
+.pill.d{border-color:var(--accent);color:var(--accent)}
+.empty{color:var(--muted);font-size:.88rem}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:.9rem;margin:0}
+.kv dt{color:var(--muted)} .kv dd{margin:0;font-weight:600}
+.types{display:grid;gap:6px;font-size:.86rem}
+.tlist{display:grid;gap:10px}
+.trow{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:8px}
+.thd{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:600;font-size:.92rem}
+.thd i{width:14px;height:10px;border-radius:2px;border:1px solid var(--line);flex:none}
+.thd .tc{margin-inline-start:auto;color:var(--muted);font-weight:500;font-size:.8rem}
+.fig .val.soon{font-family:var(--f-body);font-size:.9rem;color:var(--muted);text-align:start}
+.tbasis{color:var(--muted);font-size:.78rem;margin:0}
+.per{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:.85rem}
+.per span{font-weight:600;margin-inline-end:4px}
+.per button{font:600 .82rem var(--f-body);border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;padding:4px 12px;cursor:pointer}
+.per .pc{display:inline-flex;align-items:center;gap:6px}.per .pc input{font:500 .82rem var(--f-body);border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;padding:3px 8px}.per .pc[hidden]{display:none}
+.per button[aria-pressed="true"]{background:var(--accent);color:var(--surface);border-color:var(--accent)}
+.figs3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.figs3 .fig{padding:7px 9px;gap:1px}
+.figs3 .fig .lbl{font-size:.7rem}
+.figs3 .fig .val{font-size:.95rem;text-align:start}
+.figs3 .fig .note{font-size:.68rem;line-height:1.35}
+@media (max-width:520px){.figs3 .fig{padding:6px 7px}.figs3 .fig .val{font-size:.82rem}.figs3 .fig .note{font-size:.64rem}}
+.trow[data-k]{cursor:pointer;transition:border-color .15s}
+.trow[data-k]:hover{border-color:var(--accent)}
+.back{font:600 .86rem var(--f-body);border:0;background:none;color:var(--accent);cursor:pointer;padding:0;justify-self:start;text-decoration:underline;text-underline-offset:3px}
+.flt{display:flex;gap:6px;flex-wrap:wrap}
+.flt button{font:600 .8rem var(--f-body);border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;padding:3px 11px;cursor:pointer}
+.flt button[aria-pressed="true"]{background:var(--accent);color:var(--surface);border-color:var(--accent)}
+tr.tx{cursor:pointer} tr.tx td{padding:6px 6px;vertical-align:top} tr.tx td:nth-child(3) .pct{white-space:nowrap}
+.pct{display:block;font-size:.74rem;font-weight:600} tr.tx:hover td{background:var(--surface-2)}
+tr.tx.ex td{color:var(--muted)}
+.pill.ex{border-style:dashed}
+.area{fill:rgba(224,56,43,.08);stroke:var(--marker);stroke-width:3;stroke-linejoin:round;vector-effect:non-scaling-stroke;pointer-events:none}
+tr.tx.on td{background:var(--accent-soft)}
+.ulink{font:600 .86rem var(--f-num);border:0;background:none;color:var(--accent);cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:3px}
+.types div{display:flex;gap:8px;align-items:center}
+.types i{width:14px;height:10px;border-radius:2px;border:1px solid var(--line);flex:none}
+.viewer-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:10px;min-width:0}
+.vbar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.crumb{display:flex;gap:6px;align-items:center;font-size:.92rem;font-weight:600;flex-wrap:wrap}
+.crumb button{font:inherit;border:0;background:none;color:var(--accent);cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:3px}
+.tools{display:flex;gap:6px;direction:ltr}
+.tools button{font-family:var(--f-num);font-size:.9rem;min-width:34px;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);border-radius:6px;padding:4px 10px;cursor:pointer}
+.viewport{position:relative;overflow:hidden;border-radius:8px;background:var(--surface-2);touch-action:none;cursor:grab;direction:ltr;height:min(72vh,640px);max-width:100%}
+.viewport.drag{cursor:grabbing}
+.stage{position:absolute;left:0;top:0;transform-origin:0 0}
+.stage.anim{transition:transform .4s cubic-bezier(.2,.7,.2,1)}
+.stage img{display:block;width:100%;height:100%;user-select:none;-webkit-user-drag:none;pointer-events:none}
+.stage svg{position:absolute;inset:0;width:100%;height:100%}
+.poly{fill:rgba(11,102,112,.10);stroke:var(--accent);stroke-width:3;cursor:pointer;transition:fill .15s}
+.poly:hover,.poly.on{fill:rgba(11,102,112,.32)}
+.poly.plan{stroke:var(--sand);fill:rgba(183,131,42,.10)} .poly.plan:hover,.poly.plan.on{fill:rgba(183,131,42,.3)}
+.plabel{font-family:var(--f-display);font-size:24px;font-weight:600;fill:#0b3f45;paint-order:stroke;stroke:#fff;stroke-width:6px;pointer-events:none}
+.pin{position:absolute;width:0;height:0;pointer-events:none}
+.pin::before{content:"";position:absolute;width:calc(var(--r,14px)*2);height:calc(var(--r,14px)*2);left:calc(var(--r,14px)*-1);top:calc(var(--r,14px)*-1);border-radius:50%;border:4px solid #1d4ed8;box-shadow:0 0 0 3px rgba(255,255,255,.9),inset 0 0 0 2px rgba(255,255,255,.9)}
+.pin::after{content:"";position:absolute;width:calc(var(--r,14px)*3.6);height:calc(var(--r,14px)*3.6);left:calc(var(--r,14px)*-1.8);top:calc(var(--r,14px)*-1.8);border-radius:50%;border:3px solid #1d4ed8;opacity:.6;animation:ping 1.6s ease-out infinite}
+@keyframes ping{from{transform:scale(.6);opacity:.8}to{transform:scale(1.4);opacity:0}}
+@media (prefers-reduced-motion:reduce){.pin::after{animation:none}.stage.anim{transition:none}}
+.loc{font-size:.84rem;color:var(--muted)}
+footer{color:var(--muted);font-size:.8rem;line-height:1.7}
+.dlrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.dlbtn{display:inline-flex;align-items:center;gap:8px}
+.dlbtn[disabled]{opacity:.6;cursor:progress}
+.dlbtn svg{width:16px;height:16px;flex:none}
+#dlmsg{font-size:.85rem;color:var(--muted)} #dlmsg.err{color:var(--down)}
+.pdfrep{--bg:#ffffff;--surface:#ffffff;--surface-2:#eef3f2;--line:#d3ddda;--fg:#13201e;--muted:#566864;--accent:#0b6670;--accent-soft:#d9eef0;--sand:#a5741f;--up:#1c7a45;--down:#b3392f;--warn-soft:#f8efdc;
+  position:absolute;left:-10000px;top:0;width:794px;background:#fff;color:#13201e;padding:30px 36px 24px;display:grid;gap:16px;font-family:var(--f-body);font-size:14px;line-height:1.55;color-scheme:light}
+.pdfrep[lang="zh"]{--f-display:"Noto Sans SC",sans-serif;--f-body:"Noto Sans SC",sans-serif}
+.pdfrep[lang="en"]{--f-display:"Readex Pro",sans-serif;--f-body:"IBM Plex Sans Arabic",sans-serif}
+.pdfhead{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;border-bottom:3px solid #0b6670;padding-bottom:10px}
+.pdfhead .k{font:600 12px var(--f-body);letter-spacing:.06em;color:#0b6670;text-transform:uppercase}
+.pdfhead h1{font-size:24px;margin:2px 0 0}
+.pdfhead .m{font-size:12px;color:#566864;text-align:end;line-height:1.6}
+.pdfmap{display:block;margin:0 auto;border:1px solid #d3ddda;border-radius:8px}
+.pdfrep .sheet{border:0;padding:0;background:none;gap:12px}
+.pdfrep .figs{grid-template-columns:repeat(2,minmax(0,1fr))}
+.pdfrep .tbl{overflow:visible}
+.pdffoot{font-size:11px;color:#566864;border-top:1px solid #d3ddda;padding-top:8px;line-height:1.6}
+.pdfrep[lang="ar"] .pdfhead .k{letter-spacing:0;text-transform:none}
+.pdfrep .figs3 .fig{padding:7px 9px} .pdfrep .figs3 .fig .val{font-size:.95rem} .pdfrep .figs3 .fig .note{font-size:.68rem}
+.pdfrep th{padding:6px 8px} .pdfrep td,.pdfrep tr.tx td{padding:5px 8px}
+.pdfrep .pct{display:inline;margin-inline-start:6px}
+
+@media (max-width:520px){.sheet{padding:14px}tr.tx td,.tbl th{padding:6px 4px}.figs{grid-template-columns:minmax(0,1fr)}.viewport{height:62vh}}
+</style>
+
+<div class="wrap" id="app" dir="ltr" lang="en">
+  <header>
+    <div>
+      <div class="brandline">Ahmed Aladdin · Lagoons Property Finder</div>
+      <h1 id="h1"></h1>
+      <p class="sub" id="sub"></p>
+    </div>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" data-l="en" aria-pressed="true">English</button>
+      <button type="button" data-l="ar" aria-pressed="false">العربية</button>
+      <button type="button" data-l="zh" aria-pressed="false">中文</button>
+    </div>
+  </header>
+
+  <form class="search" id="f" autocomplete="off">
+    <div class="srow">
+      <label for="q" id="lq"></label>
+      <input id="q" name="q" placeholder="R414" maxlength="6" aria-describedby="msg">
+      <button class="btn" type="submit" id="go"></button>
+      <div class="chips" id="sugg"></div>
+      <span class="hint" id="msg"></span>
+    </div>
+    <div class="clusters" id="cls"></div>
+    <div class="per" role="group" aria-labelledby="lper"><span id="lper"></span><button type="button" data-p="3"></button><button type="button" data-p="6"></button><button type="button" data-p="12"></button><button type="button" data-p="c"></button><span class="pc" id="pc" hidden><input type="date" id="pcF" aria-label="from"><span>→</span><input type="date" id="pcT" aria-label="to"></span></div>
+    <div class="dlrow"><button type="button" class="btn dlbtn" id="dlpdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-5-5m5 5l5-5M4 19h16"/></svg><span id="dllbl"></span></button><span id="dlmsg" role="status"></span></div>
+    <div class="legend">
+      <span><i style="background:var(--up)"></i><b id="lg1" style="font-weight:400"></b></span>
+      <span><i style="background:var(--accent)"></i><b id="lg2" style="font-weight:400"></b></span>
+      <span><i style="background:var(--sand)"></i><b id="lg3" style="font-weight:400"></b></span>
+    </div>
+  </form>
+
+  <div class="main">
+    <section class="sheet" id="sheet" aria-live="polite"></section>
+    <section class="viewer-card">
+      <div class="vbar">
+        <div class="crumb" id="crumb"></div>
+        <div class="tools" role="group">
+          <button type="button" id="zin">+</button>
+          <button type="button" id="zout">−</button>
+          <button type="button" id="zfit">⤢</button>
+        </div>
+      </div>
+      <div class="viewport" id="vp">
+        <div class="stage" id="stage">
+          <img id="img" alt="">
+          <svg id="ov"></svg>
+          <div class="pin" id="pin" hidden></div>
+        </div>
+      </div>
+      <div class="loc" id="loc"></div>
+    </section>
+  </div>
+
+  <footer id="foot"></footer>
+  <div class="agentline" id="agentline" hidden></div>
+  <p class="credit" id="credit"></p>
+</div>
+
+<script>
+/* ---------- credit (required by the license, do not remove) ---------- */
+const LPF_VERSION="1.0";
+const CREDIT=`Lagoons Property Finder v${LPF_VERSION} © 2026 Ahmed Aladdin | أحمد علاء الدين · @aladdin.therealtor`;
+const CREDIT_PDF=`Lagoons Property Finder v${LPF_VERSION} © 2026 Ahmed Aladdin · @aladdin.therealtor`;
+const AG=(window.AGENT||{});
+const agentText=()=>[AG.name,AG.company,AG.phone,AG.email,AG.brn?("BRN "+AG.brn):""].filter(Boolean).join(" · ");
+(function(){const c=document.getElementById("credit");if(c)c.textContent=CREDIT;const a=document.getElementById("agentline");const at=agentText();if(a&&at){a.textContent=at;a.hidden=false}})();
+const perAr=n=>n===12?"آخر 12 شهر":`آخر ${n} شهور`;
+const I={
+ar:{dir:"rtl",h1:"داماك لاجونز · <span>دوّر على أي وحدة</span>",sub:"الماستر بلان كله بكل المراحل. اكتب رقم الوحدة بالحرف (R414، U575، K438، BL917) أو دوس على أي مرحلة في الخريطة.",
+ lq:"رقم الوحدة",go:"اعرض",lg1:"فيه صفقات DLD",lg2:"مخطط بأرقام الوحدات",lg3:"مخطط من غير أرقام",
+ zin:"كبّر",zout:"صغّر",zfit:"المخطط كامل",master:"الماستر بلان",masterAll:"الماستر بلان · كل المراحل",
+ locMaster:"دوس على أي مرحلة عشان تفتح المخطط بتاعها بأرقام الوحدات.",locPlan:"المخطط ده من غير أرقام وحدات في ملفات داماك.",locNum:"اسحب للتحريك، والعجلة أو الأزرار للتكبير. دوس على أي وحدة عشان تفتحها.",
+ locI:"المكان محسوب بالتسلسل بين أقرب رقمين مكتوبين على المخطط.",locA:"المكان مقروء من رقم الوحدة المكتوب على المخطط.",locNone:"الوحدة دي مش متعلمة على المخطط، كبّر ودوّر عليها بالرقم.",
+ st_dld:"صفقات DLD متضافة",kHo:"التسليم الفعلي (سجل DLD)",hoDone:"اتسلمت",hoWip:"لسه متسلمتش",hoPct:(p,i)=>`الإنجاز ${p}% في آخر معاينة (${i})`,hoOld:"معاينة قديمة",kDld:"وحدات ليها صفقات في DLD",tNoPins:"أماكن وحدات التايب ده لسه مش متعلمة على المخطط.",noUnitDeals:"مفيش صفقات DLD للوحدة دي.",kPhase:"المرحلة",st_num:"مخطط بأرقام الوحدات",st_plan:"مخطط من غير أرقام وحدات",
+ phases:"المراحل في داماك لاجونز",phasesHint:"كل مرحلة ليها حرف قبل رقم الوحدة. دوس على الصف يفتح المخطط.",thPhase:"المرحلة",thPref:"الحرف",thN:"الوحدات",thSt:"الحالة",
+ kPref:"حرف الوحدات",kN:"وحدات متعلمة على المخطط",kRange:"الأرقام",kSrc:"مصدر المخطط",colors:"ألوان المخطط",tTitle:"أنواع الوحدات",tPrice:"رنج السعر",tRent:"الإيجار السنوي",tU:"وحدة",tUp:"وحدة متعلمة",tDeals:"صفقة",tNoP:"مفيش صفقات ريسيل في الفترة دي",tNoR:"مفيش عقود إيجار",tFew:"صفقات قليلة على رنج",tSoon:"لسه متضافش",tDev:"سعر المطور",tSales:"بيعة",tLaunch:"الطرح",tPick:"دوس على أي نوع عشان تشوف وحداته على المخطط وكل صفقاته.",tBack:"كل الأنواع",tTx:"الصفقات (الأحدث الأول)",tAll:"الكل",tRes:"ريسيل",tDevS:"مطور",tLs:"إيجار",tMore:"اعرض أكتر",thUnit:"الوحدة",tExcl:"مستبعدة",tNoTx:"صفقات المرحلة دي لسه متضافتش.",tOnMap:"أماكن وحداته متحددة بخط أحمر على المخطط. دوس على أي صفقة عشان تشوف الوحدة بالظبط، أو على رقم الوحدة عشان تفتح تفاصيلها.",tPinned:c=>`${c} متعلمة على المخطط.`,tArea:"مساحة",d6:"صفقة آخر 6 شهور",bzone:"نفس المنطقة",bproject:"نفس المشروع",bboth:"كوستا برافا 1 و2",tSoonNote:"أسعار وإيجارات المرحلة دي هتتضاف من DXBinteract. الأنواع ولون كل نوع من المخطط الرسمي.",
+ fromMap:"اخترت الوحدة من المخطط.",multi:"الرقم ده موجود في أكتر من مرحلة، اختار:",notOn:(c,n)=>`${c} مش متعلمة على مخطط ${n}، كبّر ودوّر عليها بالرقم.`,bad:"اكتب حرف المرحلة ورقم الوحدة، زي R414 أو K438 أو BL917.",
+ fRange:"رنج السعر المتوقع الآن",fRent:"الإيجار السنوي المتوقع",fDev:"اشتراها من المطور بـ (درهم)",fLast:"آخر صفقة ريسيل",none:"مفيش",median:"الوسيط",deals2026:"صفقة 2026",leases:"عقد",
+ notEnough:"مفيش صفقات كفاية",onDev:"على المطور",on:"بتاريخ",plot:"مساحة الأرض",sqft:"قدم²",hist:"سجل الوحدة",thDate:"التاريخ",thType:"النوع",thVal:"القيمة (درهم)",thVsDev:"على سعر المطور",
+ devSale:"بيع مطور",resale:"ريسيل",lease:"عقد إيجار سنوي",leaseM:m=>`عقد إيجار (${m} شهر)`,noDeals:"مفيش صفقات مسجلة للوحدة دي.",rented:"مؤجرة",rented26:"مؤجرة 2026",
+ pfMkt:n=>`القيمة السوقية (رنج التايب، ${perAr(n)})`,lper:"الفترة",perL:{3:"3 شهور",6:"6 شهور",12:"12 شهر",c:"مخصص"},dNc:"صفقة في الفترة المختارة",pfMktC:"القيمة السوقية (رنج التايب، الفترة المختارة)",notePc:(a,b)=>`السعر: صفقات ريسيل في DLD من ${a} لحد ${b}.`,dN:n=>`صفقة ${perAr(n)}`,noteP:(n,d)=>`السعر: صفقات ريسيل ${perAr(n)} في DLD لحد ${d}.`,noteRcb:"الإيجار: عقود Ejari جديدة في نفس الفترة (بالشهر).",noteRpf:"الإيجار: عقود 12 و13 شهر جديدة في نفس الفترة.",noteTail:"الرنج = النص الأوسط من الصفقات (الربع الأدنى لحد الربع الأعلى)، ولو أقل من 3 صفقات بتظهر الصفقات نفسها. أي ريسيل أقل من 70% من سعر المطور مستبعد. سعر المطور = كل البيعات من المطور، والطرح = أول بيعة مسجلة في DLD.",pfRent:"الإيجار السنوي للتايب",cb1:"كوستا برافا 1",cb2:"كوستا برافا 2",pfName:"بورتوفينو",
+ typeByColor:"النوع متحدد من لون الوحدة على المخطط الرسمي.",noDld:"صفقات DLD وعقود الإيجار للمرحلة دي لسه متضافتش. المتاح دلوقتي مكان الوحدة على المخطط.",
+ loadErr:"ملف البيانات ما اتحملش. اعمل ريفريش للصفحة.",
+ foot:"المخططات من ملفات الماركتنج الرسمية لداماك لاجونز (SharePoint بتاع داماك). الصفقات وعقود الإيجار من DXBinteract (سجلات DLD وEjari) وبتتحدث كل أسبوع يوم الاتنين. أماكن الوحدات مقروءة من الأرقام المكتوبة على المخطط، وأي وحدة مش متعلمة تتلاقى بالتكبير. للاسترشاد وليست استشارة مالية.",
+ months:["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"]},
+en:{dir:"ltr",h1:"DAMAC Lagoons · <span>Find any unit</span>",sub:"The full master plan with every phase. Type a unit code with its letter (R414, U575, K438, BL917) or tap a phase on the map.",
+ lq:"Unit number",go:"Show",lg1:"DLD deals",lg2:"Plan with unit numbers",lg3:"Plan without numbers",
+ zin:"Zoom in",zout:"Zoom out",zfit:"Fit plan",master:"Master plan",masterAll:"Master plan · all phases",
+ locMaster:"Tap any phase to open its plan with unit numbers.",locPlan:"This plan has no unit numbers in the DAMAC files.",locNum:"Drag to move, wheel or buttons to zoom. Tap a unit to open it.",
+ locI:"Position interpolated between the two nearest numbers printed on the plan.",locA:"Position read from the unit number printed on the plan.",locNone:"This unit is not pinned on the plan. Zoom in and look for its number.",
+ st_dld:"DLD deals added",kHo:"Actual handover (DLD registry)",hoDone:"Handed over",hoWip:"Not handed over yet",hoPct:(p,i)=>`${p}% built at the last inspection (${i})`,hoOld:"old inspection",kDld:"Units with DLD deals",tNoPins:"Units of this type are not pinned on the plan yet.",noUnitDeals:"No DLD deals found for this unit.",kPhase:"Phase",st_num:"Plan with unit numbers",st_plan:"Plan without unit numbers",
+ phases:"Phases in DAMAC Lagoons",phasesHint:"Each phase has a letter before the unit number. Tap a row to open its plan.",thPhase:"Phase",thPref:"Letter",thN:"Units",thSt:"Status",
+ kPref:"Unit letter",kN:"Units pinned on the plan",kRange:"Numbers",kSrc:"Plan source",colors:"Plan colours",tTitle:"Unit types",tPrice:"Price range",tRent:"Annual rent",tU:"units",tUp:"units pinned",tDeals:"deals",tNoP:"No resale deals in this period",tNoR:"No leases",tFew:"too few deals for a range",tSoon:"Not added yet",tDev:"Developer price",tSales:"sales",tLaunch:"Launched",tPick:"Tap a type to see its units on the plan and all its transactions.",tBack:"All types",tTx:"Transactions (newest first)",tAll:"All",tRes:"Resale",tDevS:"Developer",tLs:"Lease",tMore:"Show more",thUnit:"Unit",tExcl:"excluded",tNoTx:"Transactions for this phase are not added yet.",tOnMap:"Its units are outlined in red on the plan. Tap a transaction to see the exact unit, or the unit number to open its details.",tPinned:c=>`${c} is marked on the plan.`,tArea:"area",d6:"deals, last 6 months",bzone:"same zone",bproject:"same project",bboth:"Costa Brava 1 and 2",tSoonNote:"Prices and rents for this phase will be added from DXBinteract. Types and their colours come from the official plan.",
+ fromMap:"Unit picked from the plan.",multi:"This number exists in more than one phase. Pick one:",notOn:(c,n)=>`${c} is not pinned on the ${n} plan. Zoom in and look for its number.`,bad:"Type the phase letter and unit number, e.g. R414, K438 or BL917.",
+ fRange:"Expected price range now",fRent:"Expected annual rent",fDev:"Bought from developer (AED)",fLast:"Last resale",none:"None",median:"Median",deals2026:"deals in 2026",leases:"leases",
+ notEnough:"Not enough deals",onDev:"vs developer",on:"on",plot:"Plot area",sqft:"sq ft",hist:"Unit history",thDate:"Date",thType:"Type",thVal:"Value (AED)",thVsDev:"vs developer price",
+ devSale:"Developer sale",resale:"Resale",lease:"Annual lease",leaseM:m=>`Lease (${m} months)`,noDeals:"No recorded deals for this unit.",rented:"Leased",rented26:"Leased 2026",
+ pfMkt:n=>`Market value (type range, last ${n} months)`,lper:"Period",perL:{3:"3 months",6:"6 months",12:"12 months",c:"Custom"},dNc:"deals in the selected period",pfMktC:"Market value (type range, selected period)",notePc:(a,b)=>`Price: DLD resale deals from ${a} to ${b}.`,dN:n=>`deals, last ${n} months`,noteP:(n,d)=>`Price: DLD resale deals in the last ${n} months to ${d}.`,noteRcb:"Rent: new Ejari leases in the same period (by month).",noteRpf:"Rent: new 12 and 13 month leases in the same period.",noteTail:"Range = middle half of deals (25th to 75th percentile); with fewer than 3 deals the deals themselves are shown. Resales below 70% of the developer price are excluded. Developer price = all developer sales; launch = the first one recorded in DLD.",pfRent:"Annual rent for the type",cb1:"Costa Brava 1",cb2:"Costa Brava 2",pfName:"Portofino",
+ typeByColor:"Type taken from the unit colour on the official plan.",noDld:"DLD deals and leases for this phase are not added yet. For now you get the unit's position on the plan.",
+ loadErr:"The data file did not load. Refresh the page.",
+ foot:"Plans from the official DAMAC Lagoons marketing files (DAMAC SharePoint). Deals and leases from DXBinteract (DLD and Ejari records) updated every Monday. Unit positions are read from numbers printed on the plans; any unpinned unit can be found by zooming in. For guidance only, not financial advice.",
+ months:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]},
+zh:{dir:"ltr",h1:"DAMAC Lagoons · <span>查找任意单元</span>",sub:"完整总规划图，涵盖所有期数。输入带字母的单元编号（R414、U575、K438、BL917），或点击地图上的任意期数。",
+ lq:"单元编号",go:"查看",lg1:"有 DLD 成交",lg2:"带单元编号的平面图",lg3:"无编号的平面图",
+ zin:"放大",zout:"缩小",zfit:"显示全图",master:"总规划图",masterAll:"总规划图 · 所有期数",
+ locMaster:"点击任意期数，打开带单元编号的平面图。",locPlan:"DAMAC 资料中此平面图没有单元编号。",locNum:"拖动可移动，滚轮或按钮可缩放。点击单元即可打开。",
+ locI:"位置根据平面图上最近的两个编号推算。",locA:"位置读取自平面图上印的单元编号。",locNone:"此单元未在平面图上标注，请放大后按编号查找。",
+ st_dld:"已添加 DLD 成交",kHo:"实际交付（DLD 登记）",hoDone:"已交付",hoWip:"尚未交付",hoPct:(p,i)=>`最近一次检查（${i}）完工 ${p}%`,hoOld:"检查较旧",kDld:"有 DLD 成交的单元",tNoPins:"此户型的单元尚未在平面图上标注。",noUnitDeals:"此单元没有 DLD 成交记录。",kPhase:"分期",st_num:"带单元编号的平面图",st_plan:"无单元编号的平面图",
+ phases:"DAMAC Lagoons 各期",phasesHint:"每期在单元编号前有一个字母。点击一行即可打开平面图。",thPhase:"期数",thPref:"字母",thN:"单元数",thSt:"状态",
+ kPref:"单元字母",kN:"平面图上已标注单元",kRange:"编号范围",kSrc:"平面图来源",colors:"平面图颜色",tTitle:"户型",tPrice:"价格区间",tRent:"年租金",tU:"个单元",tUp:"个已标注单元",tDeals:"笔成交",tNoP:"此期间无转售成交",tNoR:"无租约",tFew:"成交太少，无法给出区间",tSoon:"尚未添加",tDev:"开发商价",tSales:"笔",tLaunch:"首发",tPick:"点击任一户型，查看其在平面图上的单元及全部成交。",tBack:"全部户型",tTx:"成交记录（最新在前）",tAll:"全部",tRes:"转售",tDevS:"开发商",tLs:"租约",tMore:"显示更多",thUnit:"单元",tExcl:"已剔除",tNoTx:"此期的成交尚未添加。",tOnMap:"其单元已在平面图上用红线圈出。点击任一成交可定位到具体单元，点击单元编号可打开详情。",tPinned:c=>`${c} 已在平面图上标出。`,tArea:"面积",d6:"笔近 6 个月成交",bzone:"同一区域",bproject:"同一项目",bboth:"科斯塔布拉瓦 1 和 2",tSoonNote:"此期的价格和租金将从 DXBinteract 添加。户型及颜色来自官方平面图。",
+ fromMap:"已从平面图选择单元。",multi:"此编号出现在多个期数中，请选择：",notOn:(c,n)=>`${c} 未在${n}平面图上标注，请放大后按编号查找。`,bad:"请输入期数字母和单元编号，例如 R414、K438 或 BL917。",
+ fRange:"当前预期价格区间",fRent:"预期年租金",fDev:"开发商售价（迪拉姆）",fLast:"最近一次转售",none:"无",median:"中位数",deals2026:"笔 2026 年成交",leases:"份租约",
+ notEnough:"成交数量不足",onDev:"相对开发商价",on:"日期",plot:"地块面积",sqft:"平方英尺",hist:"单元记录",thDate:"日期",thType:"类型",thVal:"金额（迪拉姆）",thVsDev:"相对开发商价",
+ devSale:"开发商销售",resale:"转售",lease:"年度租约",leaseM:m=>`租约（${m} 个月）`,noDeals:"此单元没有成交记录。",rented:"已出租",rented26:"2026 已出租",
+ pfMkt:n=>`市场价值（同户型区间，近 ${n} 个月）`,lper:"时间段",perL:{3:"3 个月",6:"6 个月",12:"12 个月",c:"自定义"},dNc:"笔所选期间成交",pfMktC:"市场价值（同户型区间，所选期间）",notePc:(a,b)=>`价格：DLD 转售成交，${a} 至 ${b}。`,dN:n=>`笔近 ${n} 个月成交`,noteP:(n,d)=>`价格：近 ${n} 个月 DLD 转售成交（截至 ${d}）。`,noteRcb:"租金：同期新签 Ejari 租约（按月）。",noteRpf:"租金：同期新签 12 及 13 个月租约。",noteTail:"区间 = 成交的中间一半（第 25 至第 75 百分位）；少于 3 笔时直接列出成交。低于开发商价 70% 的转售已剔除。开发商价 = 全部开发商销售；首发 = DLD 记录的第一笔。",pfRent:"同户型年租金",cb1:"科斯塔布拉瓦 1",cb2:"科斯塔布拉瓦 2",pfName:"波托菲诺",
+ typeByColor:"户型根据官方平面图上的单元颜色判断。",noDld:"此期的 DLD 成交和租约尚未添加，目前提供单元在平面图上的位置。",
+ loadErr:"数据文件未能加载，请刷新页面。",
+ foot:"平面图来自 DAMAC Lagoons 官方营销资料（DAMAC SharePoint）。成交和租约数据来自 DXBinteract（DLD 和 Ejari 记录），每周一更新。单元位置读取自平面图上的编号，未标注的单元可放大查找。仅供参考，不构成财务建议。",
+ months:["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"]}
+};
+let L="en";
+try{const s=localStorage.getItem("lagoons_lang2");if(I[s])L=s}catch(e){}
+const t=k=>I[L][k];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+const fmtR=(lo,hi)=>{if(Math.round(lo)===Math.round(hi))return fmtM(lo);if(lo>=1e6&&hi>=1e6){const f=x=>(x/1e6).toFixed(2).replace(/\.?0+$/,"");return f(lo)+"–"+f(hi)+"M"}if(lo<1e6&&hi<1e6)return Math.round(lo/1e3)+"–"+Math.round(hi/1e3)+"K";return fmtM(lo)+"–"+fmtM(hi)};
+const fmtM=v=>v==null?"—":(v>=1e6?(v/1e6).toFixed(2).replace(/\.?0+$/,"")+"M":Math.round(v/1e3)+"K");
+const full=v=>v==null?"—":Math.round(v).toLocaleString("en-US");
+const mon=d=>{if(!d)return"—";const [y,m,dd]=d.split("-");const M=t("months")[+m-1];return L==="zh"?`${y}年${M}${dd?(+dd)+"日":""}`:(dd?(+dd)+" ":"")+M+" "+y};
+const nm=c=>c.name?c.name[L]:c.ar;
+const tx=o=>o==null?"":(typeof o==="object"?(o[L]||o.ar):o);
+
+let D=null, view="master", sel=null;
+const T={s:1,x:0,y:0,base:1,w:1,h:1};
+
+/* ---------- viewer ---------- */
+function setImage(src,w,h,alt){
+  if(src&&!/^(https?:|data:|blob:|plans\/)/.test(src))src="plans/"+src;
+  const img=$("img"); img.alt=alt; if(img.getAttribute("src")!==src) img.src=src;
+  const st=$("stage"); st.style.width=w+"px"; st.style.height=h+"px";
+  T.w=w;T.h=h; $("ov").setAttribute("viewBox",`0 0 ${w} ${h}`);
+  fit(false);
+}
+function apply(anim){const st=$("stage");st.classList.toggle("anim",!!anim);st.style.transform=`translate(${T.x}px,${T.y}px) scale(${T.s})`}
+function clampT(){const vp=$("vp"),W=vp.clientWidth,H=vp.clientHeight,sw=T.w*T.s,sh=T.h*T.s;
+  T.x=sw<=W?(W-sw)/2:Math.min(0,Math.max(W-sw,T.x)); T.y=sh<=H?(H-sh)/2:Math.min(0,Math.max(H-sh,T.y));}
+function fit(anim){const vp=$("vp");T.base=Math.min(vp.clientWidth/T.w,vp.clientHeight/T.h);T.s=T.base;clampT();apply(anim)}
+function zoomAt(f,cx,cy,anim){const ns=Math.min(T.base*12,Math.max(T.base,T.s*f));const k=ns/T.s;T.x=cx-(cx-T.x)*k;T.y=cy-(cy-T.y)*k;T.s=ns;clampT();apply(anim)}
+function focus(x,y,mult){const vp=$("vp");T.s=Math.min(T.base*12,T.base*(mult||4));T.x=vp.clientWidth/2-x*T.s;T.y=vp.clientHeight/2-y*T.s;clampT();apply(true)}
+(function(){
+  const vp=$("vp");let drag=null,moved=0;const pts=new Map();let pinch=null;
+  vp.addEventListener("pointerdown",e=>{vp.setPointerCapture(e.pointerId);pts.set(e.pointerId,[e.clientX,e.clientY]);
+    if(pts.size===2){const [a,b]=[...pts.values()];pinch={d:Math.hypot(a[0]-b[0],a[1]-b[1])};drag=null}
+    else{drag={x:e.clientX,y:e.clientY,tx:T.x,ty:T.y};moved=0}});
+  vp.addEventListener("pointermove",e=>{if(!pts.has(e.pointerId))return;pts.set(e.pointerId,[e.clientX,e.clientY]);
+    if(pinch&&pts.size===2){const [a,b]=[...pts.values()];const d=Math.hypot(a[0]-b[0],a[1]-b[1]);const r=vp.getBoundingClientRect();
+      zoomAt(d/pinch.d,(a[0]+b[0])/2-r.left,(a[1]+b[1])/2-r.top,false);pinch.d=d;moved=99;return}
+    if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;moved=Math.max(moved,Math.abs(dx)+Math.abs(dy));
+    if(moved>4){vp.classList.add("drag");T.x=drag.tx+dx;T.y=drag.ty+dy;clampT();apply(false)}});
+  const end=e=>{const wasClick=drag&&moved<=4&&pts.size===1;pts.delete(e.pointerId);if(pts.size<2)pinch=null;vp.classList.remove("drag");
+    if(wasClick)clickAt(e);drag=null};
+  vp.addEventListener("pointerup",end);vp.addEventListener("pointercancel",e=>{pts.delete(e.pointerId);drag=null;pinch=null});
+  vp.addEventListener("wheel",e=>{e.preventDefault();const r=vp.getBoundingClientRect();zoomAt(e.deltaY<0?1.25:0.8,e.clientX-r.left,e.clientY-r.top,false)},{passive:false});
+  $("zin").onclick=()=>{const v=$("vp");zoomAt(1.5,v.clientWidth/2,v.clientHeight/2,true)};
+  $("zout").onclick=()=>{const v=$("vp");zoomAt(1/1.5,v.clientWidth/2,v.clientHeight/2,true)};
+  $("zfit").onclick=()=>fit(true);
+  window.addEventListener("resize",()=>{const keep=T.s/T.base;const vp=$("vp");T.base=Math.min(vp.clientWidth/T.w,vp.clientHeight/T.h);T.s=T.base*keep;clampT();apply(false)});
+})();
+function toImg(e){const r=$("stage").getBoundingClientRect();return [(e.clientX-r.left)/r.width*T.w,(e.clientY-r.top)/r.height*T.h]}
+function clickAt(e){
+  if(view==="master"){const el=document.elementFromPoint(e.clientX,e.clientY);const id=el&&el.dataset&&el.dataset.c;if(id)openCluster(id);return}
+  const c=D.C[view];const [x,y]=toImg(e);let best=null,bd=1e18;
+  for(const [k,u] of Object.entries(c.units)){if(!u.xy)continue;const d=(u.xy[0]-x)**2+(u.xy[1]-y)**2;if(d<bd){bd=d;best=k}}
+  const lim=(c.w/60)**2; if(best&&bd<lim){$("q").value=c.code(best);showUnit(view,best,true)}
+}
+
+/* ---------- views ---------- */
+function crumb(){
+  const c=view==="master"?null:D.C[view];
+  $("crumb").innerHTML=c?`<button type="button" id="back">${t("master")}</button><span>›</span><span>${esc(nm(c))}</span>${selType&&typeRow(c,selType)?`<span>›</span><button type="button" id="tcrumb">${nmH(typeRow(c,selType).n)}</button>`:""}${sel?`<span>›</span><span class="num">${esc(c.code(sel))}</span>`:""}`:`<span>${t("masterAll")}</span>`;
+  const b=$("back"); if(b) b.onclick=openMaster;
+  const tc=$("tcrumb"); if(tc) tc.onclick=()=>{sel=null;$("pin").hidden=true;crumb();renderType();zoomType();$("loc").textContent=t("tOnMap")};
+  document.querySelectorAll(".cl").forEach(x=>x.setAttribute("aria-current",String(x.dataset.c===view)));
+}
+function drawMaster(){
+  $("ov").innerHTML=D.order.filter(id=>D.C[id].poly).map(id=>{const c=D.C[id];const p=c.poly.map(q=>q.join(",")).join(" ");
+    return `<polygon class="poly ${c.status==="plan"?"plan":""}" data-c="${id}" points="${p}"><title>${esc(nm(c))}</title></polygon>`}).join("")
+    +D.order.filter(id=>D.C[id].poly).map(id=>{const c=D.C[id];const [x,y]=c.lab;return `<text class="plabel" x="${x}" y="${y}" text-anchor="middle">${esc(nm(c))}</text>`}).join("");
+}
+function openMaster(){
+  view="master";sel=null;selType=null;$("pin").hidden=true;
+  setImage("master.webp",2000,1105,t("master"));
+  drawMaster(); $("loc").textContent=t("locMaster");
+  crumb(); masterSheet();
+  try{history.replaceState(null,"","#")}catch(e){}
+}
+function openCluster(id,keepSel){
+  const c=D.C[id];
+  if(!c.img){if(view!=="master")openMaster();clusterSheet(id);document.querySelectorAll(".poly").forEach(p=>p.classList.toggle("on",p.dataset.c===id));return}
+  const same=view===id; view=id; if(!keepSel){sel=null;$("pin").hidden=true}
+  if(!same||!keepSel) selType=null;
+  setImage(c.img,c.w,c.h,nm(c)); if(!selType) $("ov").innerHTML="";
+  $("loc").textContent=c.status==="plan"?t("locPlan"):t("locNum");
+  crumb(); if(!keepSel) clusterSheet(id);
+  try{history.replaceState(null,"","#"+id)}catch(e){}
+}
+function placePin(c,u){const pin=$("pin");if(!u||!u.xy){pin.hidden=true;return false}
+  pin.style.setProperty("--r",Math.max(12,Math.min(40,nnOf(c)*1.5))+"px");pin.style.left=(u.xy[0]/c.w*100)+"%";pin.style.top=(u.xy[1]/c.h*100)+"%";pin.hidden=false;
+  requestAnimationFrame(()=>focus(u.xy[0],u.xy[1],c.zoom||4));return true}
+
+/* ---------- sheets ---------- */
+const statusText=c=>t("st_"+c.status)||"";
+const prefS=(c,j)=>c.pref.length>3?c.pref[0]+"–"+c.pref[c.pref.length-1]:c.pref.join(j);
+function masterSheet(){
+  const rows=D.order.map(id=>{const c=D.C[id];const n=Object.keys(c.units).length;
+    return `<tr data-c="${id}" style="cursor:pointer"><td>${esc(nm(c))}</td><td class="n">${prefS(c," · ")||"—"}</td><td class="n">${n||"—"}</td><td>${statusText(c)}</td></tr>`}).join("");
+  $("sheet").innerHTML=`<div><h2>${t("phases")}</h2><p class="hint" style="margin:4px 0 0">${t("phasesHint")}</p></div>
+  <div class="tbl"><table><thead><tr><th>${t("thPhase")}</th><th>${t("thPref")}</th><th>${t("thN")}</th><th>${t("thSt")}</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  $("sheet").querySelector("tbody").onclick=e=>{const tr=e.target.closest("tr[data-c]");if(tr)openCluster(tr.dataset.c)};
+}
+function clusterSheet(id){
+  const c=D.C[id];const ks=Object.keys(c.units);const nums=ks.map(k=>c.num(k)).filter(n=>!isNaN(n)).sort((a,b)=>a-b);
+  const types=(c.types||[]).map(ty=>`<div><i style="background:${ty[1]}"></i><span>${esc(tx(ty[0]))}</span></div>`).join("");
+  const sub=L==="en"?"":c.en;
+  let h=`<div class="unit-head"><div><div class="cname">${esc(nm(c))}</div>${sub?`<div class="proj">${esc(sub)}</div>`:""}</div><div class="tags"><span class="tag ${c.status==="plan"?"sand":""}">${statusText(c)}</span></div></div>
+  <dl class="kv"><dt>${t("kPref")}</dt><dd class="num">${prefS(c," · ")||"—"}</dd>
+  ${live(id)&&id!=="cb"&&id!=="pf"?`<dt>${t("kDld")}</dt><dd class="num">${ks.filter(k=>c.units[k].d).length}</dd><dt>${t("kN")}</dt><dd class="num">${ks.filter(k=>c.units[k].xy).length||"—"}</dd>`:`<dt>${t("kN")}</dt><dd class="num">${ks.length||"—"}</dd>`}
+  ${nums.length&&!c.multi?`<dt>${t("kRange")}</dt><dd class="num">${c.code(String(nums[0]))} → ${c.code(String(nums[nums.length-1]))}</dd>`:""}
+  ${hoHtml(c)}<dt>${t("kSrc")}</dt><dd>${esc(c.src)}</dd></dl>`;
+  if(c.tsum&&c.tsum.length) h+=typeBlock(c,id);
+  else if(types) h+=`<div><h2 style="margin-bottom:6px">${t("colors")}</h2><div class="types">${types}</div></div>`;
+  if(c.note) h+=`<div class="box">${esc(tx(c.note))}</div>`;
+  if(ks.length){const ex=ks.slice(0,6);h+=`<div class="chips">${ex.map(k=>`<button type="button" class="chip" data-u="${k}">${esc(c.code(k))}</button>`).join("")}</div>`}
+  $("sheet").innerHTML=h;
+  $("sheet").querySelectorAll("[data-u]").forEach(b=>b.onclick=()=>{$("q").value=c.code(b.dataset.u);showUnit(id,b.dataset.u)});
+  $("sheet").querySelectorAll(".trow[data-k]").forEach(b=>{b.onclick=()=>showType(id,b.dataset.k);b.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();showType(id,b.dataset.k)}}});
+}
+/* ---------- type view: units on the plan + transactions ---------- */
+let selType=null, txF="all", txN=60;
+let PER=6,CF="",CT="";
+const PK=()=>PER==="c"?"c"+CF+CT:PER;
+const perLbl=()=>PER==="c"?`${mon(CF)} → ${mon(CT)}`:t("perL")[PER];
+const inP=(d,s)=>inWin(d,s)&&(PER!=="c"||(d.length===7?d<=CT.slice(0,7):d<=CT));
+const SNAP={cb:"2026-10-09",pf:"2026-10-10"};
+function since(id){if(PER==="c")return CF;const [y,m,d]=SNAP[id].split("-").map(Number);return new Date(Date.UTC(y,m-1-PER,d+1)).toISOString().slice(0,10)}
+const inWin=(d,s)=>d.length===7?d>=s.slice(0,7):d>=s;
+function qt(a){if(!a.length)return null;const v=[...a].sort((x,y)=>x-y),n=v.length;if(n<3)return {few:v,n};
+  const p=f=>{const i=(n-1)*f,lo=Math.floor(i),hi=Math.ceil(i);return v[lo]+(v[hi]-v[lo])*(i-lo)};return [p(.25),p(.5),p(.75),n]}
+function recs(id,u){
+  if(id==="cb"){const D0=u.S.find(r=>r[0]==="D"),dv=D0&&D0[1];
+    return {dev:dv,devD:D0&&D0[2],res:u.S.filter(r=>r[0]==="I").map(r=>({v:r[1],d:r[2],ex:!!(dv&&r[1]<0.7*dv)})),rent:u.R.map(r=>({v:r[0],d:r[1]}))}}
+  const D0=(u.d||[]).find(x=>x[2]==="D"),dv=D0&&D0[1];
+  return {dev:dv,devD:D0&&D0[0],res:(u.d||[]).filter(x=>x[2]==="I").map(x=>({v:x[1],d:x[0],ex:!!(dv&&x[1]<0.7*dv)})),rent:(u.r||[]).filter(r=>r[2]===12||r[2]===13).map(r=>({v:r[3],d:r[0]}))}
+}
+const SC={};
+function tStats(id,k){
+  const key=id+"|"+k+"|"+PK(); if(SC[key]) return SC[key];
+  const c=D.C[id],s=since(id),P=[],Rn=[],DV=[];let l=null;
+  for(const u of Object.values(c.units)){ if(tKey(u)!==String(k)) continue; const r=recs(id,u);
+    if(r.dev){DV.push(r.dev); if(!l||r.devD<l) l=r.devD}
+    r.res.forEach(x=>{if(!x.ex&&inP(x.d,s))P.push(x.v)});
+    r.rent.forEach(x=>{if(inP(x.d,s))Rn.push(x.v)});}
+  return SC[key]={p:qt(P),r:qt(Rn),d:qt(DV),l};
+}
+function cbRng(k,u){
+  const key="cbg|"+PK(); let G=SC[key];
+  if(!G){const s=since("cb");G={Z:{},P:{},T:{}};const add=(o,x,v)=>(o[x]=o[x]||[]).push(v);
+    for(const [kk,uu] of Object.entries(D.C.cb.units)) recs("cb",uu).res.forEach(x=>{if(!x.ex&&inP(x.d,s)){add(G.Z,uu.z+"|"+uu.t,x.v);add(G.P,kk[0]+"|"+uu.t,x.v);add(G.T,uu.t,x.v)}});
+    SC[key]=G}
+  for(const [b,a] of [["zone",G.Z[u.z+"|"+u.t]],["project",G.P[k[0]+"|"+u.t]],["both",G.T[u.t]]])
+    if(a&&a.length>=3){const q=qt(a);return {lo:q[0],med:q[1],hi:q[2],n:q[3],basis:b}}
+  return null;
+}
+const live=id=>!!SNAP[id];
+function statsFor(id,r){return live(id)?tStats(id,r.k):{p:r.p,r:r.r,d:r.d,l:r.l}}
+function noteFor(id,c,soon){
+  if(soon) return t("tSoonNote");
+  if(!live(id)) return tx(c.tnote);
+  return (PER==="c"?t("notePc")(mon(CF),mon(CT)):t("noteP")(PER,mon(SNAP[id])))+" "+(id==="cb"?t("noteRcb"):t("noteRpf"))+" "+t("noteTail");
+}
+function setPer(p){PER=p;
+  perButtons(); if(!D||view==="master") return;
+  if(sel) renderUnit(view,sel); else if(selType) renderType(); else clusterSheet(view);
+}
+function perButtons(){$("lper").textContent=t("lper");document.querySelectorAll(".per [data-p]").forEach(b=>{b.textContent=t("perL")[b.dataset.p];b.setAttribute("aria-pressed",String((b.dataset.p==="c"?"c":+b.dataset.p)===PER))});$("pc").hidden=PER!=="c"}
+const nmH=o=>esc(tx(o)).replace(/\(([^()]*[A-Za-z][^()]*)\)/g,"<bdi dir=\"ltr\">($1)</bdi>");
+const tKey=u=>u&&u.t!=null?String(u.t):null;
+function typeRow(c,k){return (c.tsum||[]).find(r=>String(r.k)===String(k))}
+function nnOf(c){if(c._nn)return c._nn;const P=Object.values(c.units).filter(u=>u.xy).map(u=>u.xy),ds=[];
+  for(let i=0;i<P.length;i++){let m=1e18;for(let j=0;j<P.length;j++){if(i===j)continue;const d=(P[i][0]-P[j][0])**2+(P[i][1]-P[j][1])**2;if(d<m)m=d}ds.push(Math.sqrt(m))}
+  ds.sort((a,b)=>a-b);return c._nn=ds[ds.length>>1]||c.w/150}
+function hull(p){p=p.slice().sort((a,b)=>a[0]-b[0]||a[1]-b[1]);const cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]);const lo=[],up=[];
+  for(const q of p){while(lo.length>=2&&cr(lo[lo.length-2],lo[lo.length-1],q)<=0)lo.pop();lo.push(q)}
+  for(let i=p.length-1;i>=0;i--){const q=p[i];while(up.length>=2&&cr(up[up.length-2],up[up.length-1],q)<=0)up.pop();up.push(q)}
+  up.pop();lo.pop();return lo.concat(up)}
+function groups(P,eps){const n=P.length,par=[...Array(n).keys()],f=i=>par[i]===i?i:(par[i]=f(par[i])),e2=eps*eps;
+  for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)if((P[i][0]-P[j][0])**2+(P[i][1]-P[j][1])**2<=e2){const a=f(i),b=f(j);if(a!==b)par[a]=b}
+  const g={};P.forEach((p,i)=>(g[f(i)]=g[f(i)]||[]).push(p));return Object.values(g)}
+let typeP=[];
+function drawDots(c,k){
+  typeP=Object.values(c.units).filter(u=>u.xy&&tKey(u)===String(k)).map(u=>u.xy);
+  const nn=nnOf(c),pad=nn*1.4;
+  $("ov").innerHTML=groups(typeP,nn*2.6).map(g=>{const pts=[];g.forEach(p=>{for(let a=0;a<12;a++){const r=a*Math.PI/6;pts.push([p[0]+pad*Math.cos(r),p[1]+pad*Math.sin(r)])}});
+    return `<polygon class="area" points="${hull(pts).map(q=>q[0].toFixed(1)+","+q[1].toFixed(1)).join(" ")}"/>`}).join("");
+}
+function zoomType(){const c=D.C[view];if(!typeP.length){fit(true);return}const pad=nnOf(c)*3;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+  typeP.forEach(p=>{x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1])});x0-=pad;y0-=pad;x1+=pad;y1+=pad;
+  const vp=$("vp");const sc=Math.min(vp.clientWidth/(x1-x0),vp.clientHeight/(y1-y0))*0.95;
+  T.s=Math.min(T.base*12,Math.max(T.base,sc));T.x=vp.clientWidth/2-(x0+x1)/2*T.s;T.y=vp.clientHeight/2-(y0+y1)/2*T.s;clampT();apply(true)}
+function clearType(){selType=null;if(view!=="master")$("ov").innerHTML=""}
+function txList(id,k){
+  const c=D.C[id],out=[];
+  for(const [key,u] of Object.entries(c.units)){ if(tKey(u)!==String(k))continue;
+    if(id==="cb"){const dv=(u.S.find(r=>r[0]==="D")||[])[1];
+      u.S.forEach(r=>out.push({d:r[2],u:key,t:r[0],v:r[1],dev:dv,ex:r[0]==="I"&&dv&&r[1]<0.7*dv}));
+      u.R.forEach(r=>out.push({d:r[1],u:key,t:"R",v:r[0]}));}
+    else {const dv=((u.d||[]).find(x=>x[2]==="D")||[])[1];
+      (u.d||[]).forEach(x=>out.push({d:x[0],u:key,t:x[2],v:x[1],dev:dv,ex:x[2]==="I"&&dv&&x[1]<0.7*dv,a:x[3],full:u.plot}));
+      (u.r||[]).forEach(r=>out.push({d:r[0],u:key,t:"R",v:r[3],m:r[2]}));}
+  }
+  return out.sort((a,b)=>b.d.localeCompare(a.d)||a.u.localeCompare(b.u));
+}
+function showType(id,k){
+  const c=D.C[id]; if(view!==id) openCluster(id,true);
+  selType=String(k); sel=null; $("pin").hidden=true; txF="all"; txN=60;
+  drawDots(c,k); requestAnimationFrame(zoomType); crumb(); renderType();
+  $("loc").textContent=typeP.length?t("tOnMap"):t("tNoPins");
+  try{history.replaceState(null,"","#"+id)}catch(e){}
+}
+function renderType(){
+  const id=view,c=D.C[id],r=typeRow(c,selType); if(!r) return;
+  const all=live(id)?txList(id,selType):null;
+  const cnt={all:all?all.length:0,I:0,D:0,R:0}; (all||[]).forEach(x=>cnt[x.t]++);
+  const list=(all||[]).filter(x=>txF==="all"||x.t===txF);
+  const kind=x=>x.t==="D"?t("tDevS"):x.t==="I"?t("tRes"):t("tLs");
+  const mo=x=>x.t==="R"&&x.m?`<span class="pct" style="color:var(--muted);font-weight:500">${t("leaseM")(x.m).replace(/^[^(（]*[(（]|[)）]$/g,"")}</span>`:"";
+  const part=x=>x.a&&x.full&&x.a<x.full*0.9?` · ${t("tArea")} <span class="num">${full(x.a)}</span>`:"";
+  let h=`<button type="button" class="back" id="tback">← ${t("tBack")}</button>
+  <div class="unit-head"><div><div class="cname" style="font-size:1.3rem">${nmH(r.n)}</div><div class="proj">${esc(nm(c))}${r.u?` · <span class="num">${r.u}</span> ${pl(r.u,t("tU"))}`:""}</div></div></div>
+  ${figRow(id,r)}`;
+  if(!all){h+=`<div class="box">${t("tNoTx")}</div>`}
+  else{
+    const fb=[["all",t("tAll")],["I",t("tRes")],["D",t("tDevS")],["R",t("tLs")]].map(([f,l])=>`<button type="button" data-f="${f}" aria-pressed="${txF===f}">${l} <span class="num">${cnt[f]}</span></button>`).join("");
+    h+=`<div style="display:grid;gap:8px"><h2>${t("tTx")}</h2><div class="flt">${fb}</div>`;
+    if(!list.length) h+=`<p class="empty">${t("noDeals")}</p>`;
+    else h+=`<div class="tbl"><table><thead><tr><th>${t("thDate")}</th><th>${t("thUnit")}</th><th>${t("thType")}</th><th style="text-align:end">${t("thVal")}<span class="pct" style="color:var(--muted);font-weight:500">% ${t("onDev")}</span></th></tr></thead><tbody>${list.slice(0,txN).map(x=>{
+      const ch=x.t==="I"&&x.dev?Math.round((x.v/x.dev-1)*100):null;
+      return `<tr class="tx ${x.ex?"ex":""}" data-u="${esc(x.u)}"><td>${mon(x.d)}</td><td><button type="button" class="ulink" data-open="${esc(x.u)}">${esc(c.code(x.u))}</button></td><td><span class="pill ${x.t==="D"?"d":""} ${x.ex?"ex":""}">${kind(x)}${x.ex?" · "+t("tExcl"):""}</span>${mo(x)}${part(x)}</td><td class="n">${full(x.v)}${ch==null?"":`<span class="pct ${x.ex?"":ch>=0?"up":"down"}" title="${t("thVsDev")}">${(ch>=0?"+":"")+ch}%</span>`}</td></tr>`}).join("")}</tbody></table></div>`;
+    if(list.length>txN) h+=`<button type="button" class="btn" id="tmore" style="justify-self:start">${t("tMore")} (<span class="num">${list.length-txN}</span>)</button>`;
+    h+=`</div>`;
+  }
+  h+=`<p class="tbasis">${esc(noteFor(id,c,r.p==="x"))}</p>`;
+  $("sheet").innerHTML=h;
+  $("tback").onclick=()=>{clearType();crumb();clusterSheet(id);$("loc").textContent=c.status==="plan"?t("locPlan"):t("locNum")};
+  $("sheet").querySelectorAll(".flt [data-f]").forEach(b=>b.onclick=()=>{txF=b.dataset.f;txN=60;renderType()});
+  const m=$("tmore"); if(m) m.onclick=()=>{txN+=120;renderType()};
+  const tb=$("sheet").querySelector("tbody"); if(tb) tb.onclick=e=>{
+    const op=e.target.closest("[data-open]"); if(op){$("q").value=c.code(op.dataset.open);showUnit(id,op.dataset.open);return}
+    const tr=e.target.closest("tr[data-u]"); if(!tr) return;
+    tb.querySelectorAll("tr.on").forEach(x=>x.classList.remove("on")); tr.classList.add("on");
+    const k=tr.dataset.u, ok=placePin(c,c.units[k]);
+    $("loc").textContent=ok?t("tPinned")(c.code(k)):t("locNone");
+    if(ok&&window.matchMedia("(max-width:920px)").matches) $("vp").scrollIntoView({behavior:"smooth",block:"center"});
+  };
+}
+const pl=(n,w)=>L==="en"&&n===1?w.replace(/s\b/,""):w;
+function rangeFig(v,lbl,isRent,key,cmp){
+  if(v==="x") return `<div class="fig"><span class="lbl">${lbl}</span><span class="val soon">${t("tSoon")}</span></div>`;
+  if(!v) return `<div class="fig"><span class="lbl">${lbl}</span><span class="val">—</span><span class="note">${isRent?t("tNoR"):t("tNoP")}</span></div>`;
+  const unit=isRent?t("leases"):t("tDeals");
+  if(v.few) return `<div class="fig"><span class="lbl">${lbl}</span><span class="val">${v.few.map(fmtM).join(" · ")}</span><span class="note"><span class="num">${v.n}</span> ${pl(v.n,unit)} · ${t("tFew")}</span></div>`;
+  return `<div class="fig ${key?"key":""}"><span class="lbl">${lbl}</span><span class="val">${cmp?fmtR(v[0],v[2]):fmtM(v[0])+" – "+fmtM(v[2])}</span><span class="note">${t("median")} <span class="num">${fmtM(v[1])}</span> · <span class="num">${v[3]}</span> ${pl(v[3],unit)}</span></div>`;
+}
+function devFig(st){
+  const lbl=t("tDev"),v=st.d,ln=st.l?`<br>${t("tLaunch")} ${mon(st.l.slice(0,7))}`:"";
+  if(v==="x") return `<div class="fig"><span class="lbl">${lbl}</span><span class="val soon">${t("tSoon")}</span></div>`;
+  if(!v) return `<div class="fig"><span class="lbl">${lbl}</span><span class="val">—</span></div>`;
+  if(v.few) return `<div class="fig"><span class="lbl">${lbl}</span><span class="val">${v.few.map(fmtM).join(" · ")}</span><span class="note"><span class="num">${v.n}</span> ${pl(v.n,t("tSales"))}${ln}</span></div>`;
+  return `<div class="fig"><span class="lbl">${lbl}</span><span class="val">${fmtR(v[0],v[2])}</span><span class="note">${t("median")} <span class="num">${fmtM(v[1])}</span> · <span class="num">${v[3]}</span> ${pl(v[3],t("tSales"))}${ln}</span></div>`;
+}
+
+/* ---------- indicative price when a type has no resales in the period ---------- */
+const EST={
+ ar:{lbl:"سعر استرشادي",tag:"تقدير · مش صفقات فعلية",
+  s1:(x,n,w,dm)=>`تقدير، مش صفقات فعلية: مفيش ريسيل للتايب ده في الفترة دي، فأخدنا زيادة نفس التايب على سعر المطور في آخر ${w} شهر (الوسيط ${x}، ${n} صفقة) وطبقناها على سعر المطور بتاعه (الوسيط ${dm}).`,
+  s2:(ref,x,n,w,dm)=>`تقدير، مش صفقات فعلية: مفيش ريسيل للتايب ده في الفترة دي، فأخدنا أقرب تايب شبهه في نفس الكلاستر (${ref}): زيادته على سعر المطور ${x} (${n} صفقة، آخر ${w} شهر)، وطبقناها على سعر المطور بتاع التايب ده (الوسيط ${dm}).`,
+  s3:(ref,cl,x,n,w,dm,adj)=>`تقدير، مش صفقات فعلية: مفيش تايب شبهه اتباع في الكلاستر ده، فأخدنا أقرب تايب في ${cl} (${ref}): زيادته على سعر المطور ${x} (${n} صفقة، آخر ${w} شهر)، وطبقناها على سعر المطور بتاع التايب ده (الوسيط ${dm}).${adj}`,
+  adj:(p,cl,ref)=>p===0?"":` وعدّلناها ${p>0?"بزيادة":"بتقليل"} ${Math.abs(p)}% لأن زيادة الأسعار في ${cl} عمومًا ${p>0?"أعلى":"أقل"} من ${ref} في آخر 12 شهر.`,
+  adjNo:" من غير تعديل، لأن الكلاستر ده مفيهوش ريسيل كفاية نقارن بيه."},
+ en:{lbl:"Indicative price",tag:"Estimate · not actual deals",
+  s1:(x,n,w,dm)=>`Estimate, not actual deals: no resales of this type in this period, so we took the same type's uplift over its developer price in the last ${w} months (median ${x}, ${n} deals) and applied it to its developer price (median ${dm}).`,
+  s2:(ref,x,n,w,dm)=>`Estimate, not actual deals: no resales of this type in this period, so we used the closest similar type in the same cluster (${ref}): its uplift over the developer price is ${x} (${n} deals, last ${w} months), applied to this type's developer price (median ${dm}).`,
+  s3:(ref,cl,x,n,w,dm,adj)=>`Estimate, not actual deals: no similar type resold in this cluster, so we used the closest type in ${cl} (${ref}): its uplift over the developer price is ${x} (${n} deals, last ${w} months), applied to this type's developer price (median ${dm}).${adj}`,
+  adj:(p,cl,ref)=>p===0?"":` Adjusted ${p>0?"up":"down"} ${Math.abs(p)}% because price growth in ${cl} is ${p>0?"higher":"lower"} overall than in ${ref} over the last 12 months.`,
+  adjNo:" No adjustment, because this cluster has too few resales to compare."},
+ zh:{lbl:"参考价",tag:"估算 · 非实际成交",
+  s1:(x,n,w,dm)=>`估算，非实际成交：此期间该户型无转售，因此采用同户型近 ${w} 个月相对开发商价的涨幅（中位数 ${x}，${n} 笔），套用到其开发商价（中位数 ${dm}）。`,
+  s2:(ref,x,n,w,dm)=>`估算，非实际成交：此期间该户型无转售，因此采用同一组团中最相近的户型（${ref}）：其相对开发商价涨幅 ${x}（${n} 笔，近 ${w} 个月），套用到本户型开发商价（中位数 ${dm}）。`,
+  s3:(ref,cl,x,n,w,dm,adj)=>`估算，非实际成交：本组团没有相近户型成交，因此采用 ${cl} 最相近的户型（${ref}）：其相对开发商价涨幅 ${x}（${n} 笔，近 ${w} 个月），套用到本户型开发商价（中位数 ${dm}）。${adj}`,
+  adj:(p,cl,ref)=>p===0?"":`由于近 12 个月 ${cl} 整体涨幅${p>0?"高于":"低于"} ${ref}，已${p>0?"上调":"下调"} ${Math.abs(p)}%。`,
+  adjNo:"未做调整，因为本组团转售太少，无法比较。"}};
+const et=k=>EST[L][k];
+const catOf=r=>/villa|mansion/i.test(r.n.en)?"v":"t";
+const bedsOf=r=>{const m=r.n.en.match(/(\d)BR/);return m?+m[1]:null};
+const medOf=q=>!q?null:(q.few?(q.few.length===1?q.few[0]:(q.few[0]+q.few[1])/2):q[1]);
+function sinceN(id,n){const [y,m,d]=SNAP[id].split("-").map(Number);return new Date(Date.UTC(y,m-1-n,d+1)).toISOString().slice(0,10)}
+function upl(id,k,n){const key="up|"+id+"|"+k+"|"+n;if(SC[key])return SC[key];const c=D.C[id],s=sinceN(id,n),a=[];
+  for(const u of Object.values(c.units)){if(k!=null&&tKey(u)!==String(k))continue;const r=recs(id,u);if(!r.dev)continue;r.res.forEach(x=>{if(!x.ex&&inWin(x.d,s))a.push(x.v/r.dev)})}
+  return SC[key]=a}
+const pctS=x=>(x>=1?"+":"")+Math.round((x-1)*100)+"%";
+function estFor(id,k){
+  const key="est|"+id+"|"+k+"|"+PK();const PN=PER==="c"?12:PER;if(key in SC)return SC[key];
+  const c=D.C[id],r=typeRow(c,k);const dm=medOf(tStats(id,k).d);if(!r||!dm)return SC[key]=null;
+  const cat=catOf(r),bd=bedsOf(r);const wins=[...new Set([PN,12])];
+  const mk=(a,f,why)=>{const q=qt(a);return {lo:dm*q[0]*f,med:dm*q[1]*f,hi:dm*q[2]*f,n:q[3],up:q[1],dm,f,...why}};
+  if(PN<12){const a=upl(id,k,12);if(a.length>=3)return SC[key]=mk(a,1,{s:1,w:12})}
+  for(const w of wins){let best=null;
+    for(const t2 of c.tsum){if(String(t2.k)===String(k)||catOf(t2)!==cat)continue;const a=upl(id,t2.k,w);if(a.length<3)continue;
+      const d2=medOf(tStats(id,t2.k).d);if(!d2)continue;const b2=bedsOf(t2);const sc=Math.abs(Math.log(d2/dm))+(bd&&b2?0.05*Math.abs(bd-b2):0.1);
+      if(!best||sc<best.sc)best={sc,a,t2}}
+    if(best)return SC[key]=mk(best.a,1,{s:2,w,ref:best.t2.n})}
+  for(const w of wins){let best=null;
+    for(const id2 of D.order){if(id2===id||!live(id2))continue;const c2=D.C[id2];
+      for(const t2 of c2.tsum||[]){if(catOf(t2)!==cat)continue;const a=upl(id2,t2.k,w);if(a.length<3)continue;
+        const d2=medOf(tStats(id2,t2.k).d);if(!d2)continue;const b2=bedsOf(t2);const sc=(bd&&b2?(bd!==b2?1:0):0.5)+Math.abs(Math.log(d2/dm));
+        if(!best||sc<best.sc)best={sc,a,t2,id2,w}}}
+    if(best){const ta=upl(id,null,12),ra=upl(best.id2,null,12);let f=1,adj=null;
+      if(ta.length>=5&&ra.length>=5){const mt=qt(ta)[1],mr=qt(ra)[1];f=mt/mr;adj=Math.round((f-1)*100)}
+      return SC[key]=mk(best.a,f,{s:3,w:best.w,ref:best.t2.n,cl:best.id2,adj})}}
+  return SC[key]=null;
+}
+function estWhy(id,e){const c=D.C[id],x=pctS(e.up),dm=fmtM(e.dm);
+  if(e.s===1)return et("s1")(x,e.n,e.w,dm);
+  if(e.s===2)return et("s2")(tx(e.ref),x,e.n,e.w,dm);
+  const cl=nm(D.C[e.cl]);const adj=e.adj==null?et("adjNo"):et("adj")(e.adj,nm(c),cl);
+  return et("s3")(tx(e.ref),cl,x,e.n,e.w,dm,adj)}
+function estFig(e,lbl,cmp){return `<div class="fig est"><span class="lbl">${lbl||et("lbl")}</span><span class="val">${cmp?fmtR(e.lo,e.hi):fmtM(e.lo)+" – "+fmtM(e.hi)}</span><span class="note">${et("tag")} · ${t("median")} <span class="num">${fmtM(e.med)}</span></span></div>`}
+function priceFig(id,k,v,lbl,cmp){if(v==null){const e=estFor(id,k);if(e)return estFig(e,lbl,cmp)}return rangeFig(v,lbl,false,true,cmp)}
+const estNote=(id,k,v)=>{if(v!=null)return "";const e=estFor(id,k);return e?`<p class="estwhy">${esc(estWhy(id,e))}</p>`:""};
+
+function figRow(id,r,why){const st=statsFor(id,r);const ok=live(id)&&r.p!=="x";return `<div class="figs3">${devFig(st)}${ok?priceFig(id,r.k,st.p,t("tPrice"),true):rangeFig(st.p,t("tPrice"),false,true,true)}${rangeFig(st.r,t("tRent"),true,true,true)}</div>${ok?estNote(id,r.k,st.p):""}`}
+function typeBlock(c,id){
+  const soon=c.tsum.some(r=>r.p==="x");
+  const rows=c.tsum.map(r=>`<div class="trow" data-k="${esc(r.k)}" role="button" tabindex="0"><div class="thd">${r.c?`<i style="background:${r.c}"></i>`:""}<span>${nmH(r.n)}</span><span class="tc">${r.u?`<span class="num">${r.u}</span> ${pl(r.u,soon?t("tUp"):t("tU"))}`:""}</span></div>
+    ${figRow(id,r)}</div>`).join("");
+  return `<div class="tlist"><h2>${t("tTitle")}</h2><p class="hint" style="margin:-4px 0 0">${t("tPick")}</p>${rows}<p class="tbasis">${esc(noteFor(id,c,soon))}</p></div>`;
+}
+function showUnit(id,key,fromMap){
+  if(view!==id) openCluster(id,true);
+  const c=D.C[id];sel=key;const u=c.units[key];
+  if(selType&&tKey(u)!==selType) clearType();
+  crumb();
+  const placed=placePin(c,u);
+  $("loc").textContent=placed?(u.xy[2]==="i"?t("locI"):t("locA")):t("locNone");
+  renderUnit(id,key);
+  try{history.replaceState(null,"","#"+c.code(key))}catch(e){}
+  $("msg").className="hint";$("msg").textContent=fromMap?t("fromMap"):"";
+}
+function renderUnit(id,key){const c=D.C[id],u=c.units[key];const tr=selType&&typeRow(c,selType);
+  $("sheet").innerHTML=(tr?`<button type="button" class="back" id="tback2">← ${nmH(tr.n)}</button>`:"")+(id==="cb"?cbSheet(key,u):id==="pf"?pfSheet(key,u):live(id)&&u.d?genSheet(c,id,key,u):basicSheet(c,key,u));
+  const b=$("tback2"); if(b) b.onclick=()=>{sel=null;$("pin").hidden=true;crumb();renderType();zoomType();$("loc").textContent=t("tOnMap")}}
+function histTable(rows,dev){
+  if(!rows.length) return `<p class="empty">${t("noDeals")}</p>`;
+  return `<div class="tbl"><table><thead><tr><th>${t("thDate")}</th><th>${t("thType")}</th><th>${t("thVal")}</th><th>${t("thVsDev")}</th></tr></thead><tbody>${rows.map(r=>{const ch=(r.t==="I"&&dev)?Math.round((r.v/dev-1)*100):null;
+    return `<tr><td>${mon(r.d)}</td><td><span class="pill ${r.t==="D"?"d":""}">${r.k}</span></td><td class="n">${full(r.v)}</td><td class="n ${ch==null?"":ch>=0?"up":"down"}">${ch==null?"":(ch>=0?"+":"")+ch+"%"}</td></tr>`}).join("")}</tbody></table></div>`;
+}
+const li=(ar,map,k)=>L==="ar"?ar:(map&&map[k]?(Array.isArray(map[k])?map[k][L==="en"?0:1]:(L==="zh"?map[k]:k)):ar);
+function cbSheet(id,o){
+  const X=D.cb;const dev=o.S.find(r=>r[0]==="D");const res=o.S.filter(r=>r[0]==="I");const last=res[res.length-1];const g=cbRng(id,o);
+  const proj=id[0]==="K"?t("cb2"):t("cb1");
+  const myGain=(last&&dev&&last[1]>=0.7*dev[1])?Math.round((last[1]/dev[1]-1)*100):null;
+  const rows=[...o.S.map(r=>({d:r[2],k:r[0]==="D"?t("devSale"):t("resale"),v:r[1],t:r[0]})),...o.R.map(r=>({d:r[1],k:t("lease"),v:r[0],t:"R"}))].sort((a,b)=>b.d.localeCompare(a.d));
+  return `<div class="unit-head"><div><div class="unit-id num">${esc(id)}</div><div class="proj">${proj} · ${esc(li(X.ZONE[o.z]||"",X.ZONE_I,o.z))}</div></div>
+   <div class="tags"><span class="tag">${esc(li(X.TYPE[o.t]||o.t,X.TYPE_I,o.t))}</span>${o.R.some(r=>r[1].startsWith("2026"))?`<span class="tag sand">${t("rented26")}</span>`:''}</div></div>
+  <div class="figs">
+   ${!g&&estFor("cb",o.t)?estFig(estFor("cb",o.t),t("fRange")):`<div class="fig key"><span class="lbl">${t("fRange")}</span><span class="val">${g?fmtM(g.lo)+" – "+fmtM(g.hi):"—"}</span><span class="note">${g?`${t("median")} ${fmtM(g.med)} · ${g.n} ${PER==="c"?t("dNc"):t("dN")(PER)} · ${t("b"+g.basis)}`:t("notEnough")}</span></div>`}
+   ${rangeFig(tStats("cb",o.t).r,t("fRent"),true,true)}
+   <div class="fig"><span class="lbl">${t("fDev")}</span><span class="val">${dev?full(dev[1]):"—"}</span><span class="note">${dev?t("on")+" "+mon(dev[2]):""}</span></div>
+   <div class="fig"><span class="lbl">${t("fLast")}</span><span class="val ${myGain!=null&&myGain>=0?"up":""}">${last?full(last[1]):t("none")}</span><span class="note">${last?mon(last[2])+(myGain!=null?` · ${myGain>=0?"+":""}${myGain}% ${t("onDev")}`:""):""}</span></div>
+  </div>${g?"":estNote("cb",o.t,null)}
+  <dl class="kv"><dt>BUA</dt><dd class="num">${full(o.bua)} ${t("sqft")}</dd><dt>${t("plot")}</dt><dd class="num">${full(o.plot)} ${t("sqft")}</dd></dl>
+  <div><h2 style="margin-bottom:6px">${t("hist")}</h2>${histTable(rows,dev&&dev[1])}</div>`;
+}
+function pfSheet(k,u){
+  const X=D.pf;const deals=u.d||[];const dev=deals.find(x=>x[2]==="D");const res=deals.filter(x=>x[2]==="I");const last=res[res.length-1];
+  const st=tStats("pf",u.t);const code=(u.dl?"DL":"BL")+k;
+  const rows=[...deals.map(x=>({d:x[0],k:x[2]==="D"?t("devSale"):t("resale"),v:x[1],t:x[2]})),...(u.r||[]).map(r=>({d:r[0],k:t("leaseM")(r[2]),v:r[3],t:"R"}))].sort((a,b)=>b.d.localeCompare(a.d));
+  return `<div class="unit-head"><div><div class="unit-id num">${esc(code)}</div><div class="proj">${t("pfName")} · ${esc(li(X.ZONES[u.z]||"",X.ZONES_I,u.z))}</div></div><div class="tags"><span class="tag">${esc(li(X.TYPES[u.t]||u.t,X.TYPES_I,u.t))}</span>${(u.r||[]).length?`<span class="tag sand">${t("rented")}</span>`:''}</div></div>
+  <div class="figs">
+   ${priceFig("pf",u.t,st.p,(PER==="c"?t("pfMktC"):t("pfMkt")(PER)))}${rangeFig(st.r,t("pfRent"),true,true)}
+   <div class="fig"><span class="lbl">${t("fDev")}</span><span class="val">${dev?full(dev[1]):"—"}</span><span class="note">${dev?t("on")+" "+mon(dev[0]):""}</span></div>
+   <div class="fig"><span class="lbl">${t("fLast")}</span><span class="val">${last?full(last[1]):t("none")}</span><span class="note">${last?mon(last[0]):""}</span></div>
+  </div>${estNote("pf",u.t,st.p)}
+  <dl class="kv"><dt>${t("plot")}</dt><dd class="num">${u.plot?full(u.plot)+" "+t("sqft"):"—"}</dd>${u.bua?`<dt>BUA</dt><dd class="num">${full(u.bua)} ${t("sqft")}</dd>`:""}</dl>
+  <div><h2 style="margin-bottom:6px">${t("hist")}</h2>${histTable(rows,dev&&dev[1])}</div>`;
+}
+function basicSheet(c,k,u){
+  const ty=u&&u.t!=null&&c.types?c.types[u.t]:null;
+  const sub=L==="en"?"":" · "+c.en;
+  return `<div class="unit-head"><div><div class="unit-id num">${esc(c.code(k))}</div><div class="proj">${esc(nm(c))}${esc(sub)}</div></div>${ty?`<div class="tags"><span class="tag">${esc(tx(ty[0]))}</span></div>`:""}</div>
+  ${ty?`<p class="hint" style="margin:0">${t("typeByColor")}</p>`:""}
+  <div class="box">${live(c._id)?t("noUnitDeals"):t("noDld")}</div>`;
+}
+const phN=(c,p)=>p&&c.phs&&c.phs[p]?tx(c.phs[p]):(p&&PHX[p]?tx(PHX[p]):(p||""));
+const PHX={"Costa Brava 1":{ar:"كوستا برافا 1",en:"Costa Brava 1",zh:"科斯塔布拉瓦 1"},"Costa Brava 2":{ar:"كوستا برافا 2",en:"Costa Brava 2",zh:"科斯塔布拉瓦 2"},"Portofino":{ar:"بورتوفينو",en:"Portofino",zh:"波托菲诺"},"Marbella":{ar:"ماربيا",en:"Marbella",zh:"马贝拉"},"Mykonos":{ar:"ميكونوس",en:"Mykonos",zh:"米科诺斯"},"Monte Carlo":{ar:"مونت كارلو",en:"Monte Carlo",zh:"蒙特卡洛"},"Ibiza":{ar:"إيبيزا",en:"Ibiza",zh:"伊维萨"},"Venice 1":{ar:"فينيسيا 1",en:"Venice 1",zh:"威尼斯 1"},"Morocco 1":{ar:"المغرب 1",en:"Morocco 1",zh:"摩洛哥 1"},"Morocco 2":{ar:"المغرب 2",en:"Morocco 2",zh:"摩洛哥 2"}};
+function hoHtml(c){if(!c.ho||!c.ho.length)return "";
+  const one=h=>{const nmP=esc(phN(c,h.p));
+    if(h.s==="done") return `<div><b>${nmP}</b> · <span class="up">${t("hoDone")} ${mon(h.d)}</span></div>`;
+    const old=h.i&&h.i<"2026-04-11";
+    return `<div><b>${nmP}</b> · <span style="color:var(--sand)">${t("hoWip")}</span>${h.pct!=null?` · <span>${t("hoPct")(h.pct,mon(h.i))}</span>${old?` <span class="hint">(${t("hoOld")})</span>`:""}`:""}${h.n?` · <span class="hint">${esc(tx(h.n))}</span>`:""}</div>`};
+  return `<dt>${t("kHo")}</dt><dd style="font-weight:500">${c.ho.map(one).join("")}</dd>`}
+function genSheet(c,id,k,u){
+  const deals=u.d||[];const dev=deals.find(x=>x[2]==="D");const res=deals.filter(x=>x[2]==="I");const last=res[res.length-1];
+  const st=tStats(id,u.t);const tr=typeRow(c,u.t);
+  const rows=[...deals.map(x=>({d:x[0],k:x[2]==="D"?t("devSale"):t("resale"),v:x[1],t:x[2]})),...(u.r||[]).map(r=>({d:r[0],k:t("leaseM")(r[2]),v:r[3],t:"R"}))].sort((a,b)=>b.d.localeCompare(a.d));
+  const ph=phN(c,u.ph);
+  return `<div class="unit-head"><div><div class="unit-id num">${esc(c.code(k))}</div><div class="proj">${esc(nm(c))}${ph&&ph!==nm(c)?" · "+esc(ph):""}</div></div><div class="tags">${tr?`<span class="tag">${nmH(tr.n)}</span>`:""}${(u.r||[]).length?`<span class="tag sand">${t("rented")}</span>`:''}</div></div>
+  <div class="figs">
+   ${priceFig(id,u.t,st.p,(PER==="c"?t("pfMktC"):t("pfMkt")(PER)))}${rangeFig(st.r,t("pfRent"),true,true)}
+   <div class="fig"><span class="lbl">${t("fDev")}</span><span class="val">${dev?full(dev[1]):"—"}</span><span class="note">${dev?t("on")+" "+mon(dev[0]):""}</span></div>
+   <div class="fig"><span class="lbl">${t("fLast")}</span><span class="val">${last?full(last[1]):t("none")}</span><span class="note">${last?mon(last[0]):""}</span></div>
+  </div>${estNote(id,u.t,st.p)}
+  <dl class="kv"><dt>${t("plot")}</dt><dd class="num">${u.plot?full(u.plot)+" "+t("sqft"):"—"}</dd>${u.bua?`<dt>BUA</dt><dd class="num">${full(u.bua)} ${t("sqft")}</dd>`:""}</dl>
+  ${u.xy?"":`<p class="hint" style="margin:0">${t("locNone")}</p>`}
+  <div><h2 style="margin-bottom:6px">${t("hist")}</h2>${histTable(rows,dev&&dev[1])}</div>`;
+}
+
+/* ---------- search ---------- */
+function norm(s){return String(s||"").trim().toUpperCase().replace(/[\s\-_]/g,"")}
+function lookup(s){
+  s=norm(s);const m=s.match(/^([A-Z]{0,2})(\d{1,4})$/);if(!m)return {cands:[]};
+  const p=m[1],n=m[2];const hits=[];
+  for(const id of D.order){const c=D.C[id];
+    if(p&&!c.pref.includes(p))continue;
+    if(id==="cb"&&!p){for(const q of ["J","K"])if(c.units[q+n])hits.push([id,q+n]);continue}
+    if(c.multi&&!p){for(const q of c.pref)if(c.units[q+String(+n)])hits.push([id,q+String(+n)]);continue}
+    const k=c.keyOf(p,n);if(k!=null&&c.units[k])hits.push([id,k]);}
+  if(hits.length===1)return {hit:hits[0]};
+  if(hits.length)return {cands:hits};
+  if(p){const id=D.order.find(i=>D.C[i].pref.includes(p));if(id)return {cluster:id,code:p+n,cands:[]}}
+  return {cands:[]};
+}
+function go(s){
+  const r=lookup(s);$("sugg").innerHTML="";
+  if(r.hit){showUnit(r.hit[0],r.hit[1]);return}
+  if(r.cands.length){$("msg").className="hint";$("msg").textContent=t("multi");
+    $("sugg").innerHTML=r.cands.map(([id,k])=>`<button type="button" class="chip" data-c="${id}" data-u="${k}">${esc(D.C[id].code(k))}</button>`).join("");return}
+  if(r.cluster){openCluster(r.cluster);$("msg").className="err";$("msg").textContent=t("notOn")(r.code,nm(D.C[r.cluster]));return}
+  $("msg").className="err";$("msg").textContent=t("bad");
+}
+$("sugg").addEventListener("click",e=>{const b=e.target.closest("[data-u]");if(b){$("q").value=D.C[b.dataset.c].code(b.dataset.u);showUnit(b.dataset.c,b.dataset.u)}});
+$("f").addEventListener("submit",e=>{e.preventDefault();go($("q").value)});
+
+/* ---------- language ---------- */
+function staticText(){
+  const a=$("app");a.lang=L;a.dir=t("dir");document.documentElement.lang=L;
+  $("h1").innerHTML=t("h1");$("sub").textContent=t("sub");$("lq").textContent=t("lq");$("go").textContent=t("go");
+  $("lg1").textContent=t("lg1");$("lg2").textContent=t("lg2");$("lg3").textContent=t("lg3");$("foot").textContent=t("foot");
+  $("zin").title=$("zin").ariaLabel=t("zin");$("zout").title=$("zout").ariaLabel=t("zout");$("zfit").title=$("zfit").ariaLabel=t("zfit");
+  document.querySelectorAll(".lang button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.l===L)));
+  perButtons();
+}
+function clusterChips(){
+  $("cls").innerHTML=D.order.map(id=>{const c=D.C[id];
+    return `<button type="button" class="cl" data-c="${id}" data-s="${c.status}"><i></i>${esc(nm(c))}${c.pref.length?` <small>${prefS(c,"/")}</small>`:""}</button>`}).join("");
+  document.querySelectorAll(".cl").forEach(x=>x.setAttribute("aria-current",String(x.dataset.c===view)));
+}
+function setLang(l){
+  L=l;try{localStorage.setItem("lagoons_lang2",l)}catch(e){}
+  staticText(); if(!D) return;
+  clusterChips(); crumb();
+  if(view==="master"){drawMaster();$("loc").textContent=t("locMaster");masterSheet()}
+  else if(sel){renderUnit(view,sel);const u=D.C[view].units[sel];$("loc").textContent=u&&u.xy?(u.xy[2]==="i"?t("locI"):t("locA")):t("locNone")}
+  else if(selType){renderType();$("loc").textContent=t("tOnMap")}
+  else {clusterSheet(view);$("loc").textContent=D.C[view].status==="plan"?t("locPlan"):t("locNum")}
+  if($("msg").textContent){$("msg").textContent=""}
+}
+document.querySelector(".per").addEventListener("click",e=>{const b=e.target.closest("[data-p]");if(!b)return;const v=b.dataset.p==="c"?"c":+b.dataset.p;
+  if(v==="c"&&!CT){CT=(D&&D.updated)||new Date().toISOString().slice(0,10);const [y,m,d]=CT.split("-").map(Number);CF=new Date(Date.UTC(y,m-7,d+1)).toISOString().slice(0,10);$("pcF").value=CF;$("pcT").value=CT}
+  if(v!==PER)setPer(v)});
+["pcF","pcT"].forEach(i=>$(i).addEventListener("change",()=>{let f=$("pcF").value,to=$("pcT").value;if(!f||!to)return;if(f>to){[f,to]=[to,f];$("pcF").value=f;$("pcT").value=to}CF=f;CT=to;if(PER==="c")setPer("c")}));
+document.querySelector(".lang").addEventListener("click",e=>{const b=e.target.closest("[data-l]");if(b&&b.dataset.l!==L)setLang(b.dataset.l)});
+
+/* ---------- PDF report download ---------- */
+const DLT={
+ ar:{master:"تحميل تقرير الماستر بلان (PDF)",cl:n=>`تحميل تقرير ${n} (PDF)`,type:"تحميل تقرير التايب (PDF)",unit:u=>`تحميل تقرير الوحدة ${u} (PDF)`,
+  wait:"التقرير بيتجهز...",ok:"التقرير اتحفظ.",decl:"اتلغى التحميل.",fail:"التحميل ما نجحش، جرب تاني.",net:"مكتبة الـ PDF ما اتحملتش، اتأكد من النت وجرب تاني.",
+  kind:"تقرير تقييم",made:"تاريخ التقرير",shown:(a,b)=>`معروض ${a} من ${b} صفقة (الأحدث).`,filter:"الفلتر"},
+ en:{master:"Download master plan report (PDF)",cl:n=>`Download ${n} report (PDF)`,type:"Download type report (PDF)",unit:u=>`Download unit ${u} report (PDF)`,
+  wait:"Preparing the report...",ok:"Report saved.",decl:"Download cancelled.",fail:"The download failed. Try again.",net:"The PDF library did not load. Check the connection and try again.",
+  kind:"Valuation report",made:"Report date",shown:(a,b)=>`Showing the latest ${a} of ${b} transactions.`,filter:"Filter"},
+ zh:{master:"下载总规划图报告（PDF）",cl:n=>`下载${n}报告（PDF）`,type:"下载户型报告（PDF）",unit:u=>`下载单元 ${u} 报告（PDF）`,
+  wait:"正在生成报告……",ok:"报告已保存。",decl:"已取消下载。",fail:"下载失败，请重试。",net:"PDF 组件未能加载，请检查网络后重试。",
+  kind:"估值报告",made:"报告日期",shown:(a,b)=>`显示最新 ${a} 笔，共 ${b} 笔成交。`,filter:"筛选"}
+};
+const dt=k=>DLT[L][k];
+function dlLabel(){const l=$("dllbl");if(!l)return;
+  if(!D||view==="master"){l.textContent=dt("master");return}
+  const c=D.C[view];
+  l.textContent=sel?dt("unit")(c.code(sel)):selType?dt("type"):dt("cl")(nm(c));}
+{const _cr=crumb;crumb=function(){_cr();dlLabel()}}
+{const _st=staticText;staticText=function(){_st();dlLabel()}}
+dlLabel();
+
+let PDFLIB=null;
+function loadJs(src){return new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
+function pdfLibs(){return PDFLIB||(PDFLIB=Promise.all([
+  loadJs("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"),
+  loadJs("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js")]).catch(e=>{PDFLIB=null;throw e}))}
+
+/* what the map viewer shows now, with outlines and the unit pin */
+async function mapShot(){
+  const img=$("img"); try{if(!img.complete)await img.decode()}catch(e){}
+  if(!img.naturalWidth) return null;
+  /* region: around the unit, around the type's units, or the whole plan */
+  let x0=0,y0=0,x1=T.w,y1=T.h;const c=view==="master"?null:D.C[view];
+  const fitAsp=(cx,cy,w,h,asp)=>{if(w/h<asp)w=h*asp;else h=w/asp;w=Math.min(w,T.w);h=Math.min(h,T.h);
+    let a=Math.max(0,Math.min(T.w-w,cx-w/2)),b=Math.max(0,Math.min(T.h-h,cy-h/2));return [a,b,a+w,b+h]};
+  const u=c&&sel?c.units[sel]:null;
+  if(u&&u.xy){const nn=nnOf(c)||20;[x0,y0,x1,y1]=fitAsp(u.xy[0],u.xy[1],nn*40,nn*18,722/360)}
+  else if(c&&selType&&typeof typeP!=="undefined"&&typeP.length){const pad=(nnOf(c)||20)*3;let a=1e9,b=1e9,e=-1e9,f=-1e9;
+    typeP.forEach(p=>{a=Math.min(a,p[0]);b=Math.min(b,p[1]);e=Math.max(e,p[0]);f=Math.max(f,p[1])});
+    [x0,y0,x1,y1]=fitAsp((a+e)/2,(b+f)/2,e-a+2*pad,f-b+2*pad,722/520)}
+  const sw=x1-x0,sh=y1-y0; if(sw<=0||sh<=0) return null;
+  const k=Math.min(1700/sw,1700/sh,img.naturalWidth/T.w*1.5);
+  const cv=document.createElement("canvas");cv.width=Math.round(sw*k);cv.height=Math.round(sh*k);
+  const g=cv.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,cv.width,cv.height);
+  const fx=img.naturalWidth/T.w,fy=img.naturalHeight/T.h;
+  g.drawImage(img,x0*fx,y0*fy,sw*fx,sh*fy,0,0,cv.width,cv.height);
+  const P=(x,y)=>[(x-x0)*k,(y-y0)*k];
+  $("ov").querySelectorAll("polygon").forEach(p=>{
+    const pts=(p.getAttribute("points")||"").trim().split(/\s+/).map(q=>q.split(",").map(Number));if(pts.length<3)return;
+    g.beginPath();pts.forEach((q,i)=>{const [a,b]=P(q[0],q[1]);i?g.lineTo(a,b):g.moveTo(a,b)});g.closePath();
+    if(p.classList.contains("area")){g.fillStyle="rgba(224,56,43,.10)";g.strokeStyle="#e0382b";g.lineWidth=Math.max(3,Math.min(8,1.6*k))}
+    else{const pl=p.classList.contains("plan"),on=p.classList.contains("on");
+      g.fillStyle=pl?`rgba(183,131,42,${on?.3:.1})`:`rgba(11,102,112,${on?.32:.1})`;g.strokeStyle=pl?"#b7832a":"#0b6670";g.lineWidth=3*k}
+    g.lineJoin="round";g.fill();g.stroke()});
+  $("ov").querySelectorAll("text").forEach(tn=>{const [a,b]=P(+tn.getAttribute("x"),+tn.getAttribute("y"));
+    g.font=`600 ${24*k}px "Readex Pro","IBM Plex Sans Arabic","Noto Sans SC",sans-serif`;g.textAlign="center";
+    g.lineWidth=6*k;g.strokeStyle="#fff";g.lineJoin="round";g.strokeText(tn.textContent,a,b);g.fillStyle="#0b3f45";g.fillText(tn.textContent,a,b)});
+  if(!$("pin").hidden&&sel&&view!=="master"){const c=D.C[view],u=c.units[sel];
+    if(u&&u.xy){const r=Math.max(12,Math.min(40,nnOf(c)*1.5))*k;const [a,b]=P(u.xy[0],u.xy[1]);
+      g.lineWidth=Math.max(4,r*.28);g.strokeStyle="#fff";g.beginPath();g.arc(a,b,r,0,7);g.stroke();
+      g.lineWidth=Math.max(3,r*.2);g.strokeStyle="#1d4ed8";g.beginPath();g.arc(a,b,r,0,7);g.stroke();
+      g.lineWidth=Math.max(2,r*.1);g.globalAlpha=.6;g.beginPath();g.arc(a,b,r*1.7,0,7);g.stroke();g.globalAlpha=1}}
+  return {src:cv.toDataURL("image/jpeg",.9),w:cv.width,h:cv.height};
+}
+
+function reportTitle(){
+  if(!D||view==="master") return {h:t("masterAll"),f:"Lagoons_MasterPlan"};
+  const c=D.C[view];const en=(c.name&&c.name.en)||c.en||view;
+  const parts=[nm(c)],fp=["Lagoons",en];
+  if(selType){const r=typeRow(c,selType);if(r){parts.push(tx(r.n));fp.push((typeof r.n==="object"?r.n.en:r.n)||"type")}}
+  if(sel){parts.push(c.code(sel));fp.push(c.code(sel))}
+  return {h:parts.join(" · "),f:fp.join("_")};
+}
+function cleanSheet(){
+  const sh=$("sheet").cloneNode(true);sh.removeAttribute("id");sh.removeAttribute("aria-live");
+  sh.querySelectorAll(".back,#tmore").forEach(e=>e.remove());
+  sh.querySelectorAll(".flt").forEach(f=>{const on=f.querySelector('[aria-pressed="true"]');
+    if(!on||on.dataset.f==="all"){f.remove();return}
+    const p=document.createElement("p");p.className="tbasis";p.textContent=dt("filter")+": "+on.textContent.trim();f.replaceWith(p)});
+  sh.querySelectorAll("button").forEach(b=>{const s=document.createElement("span");s.className=b.className.replace(/\bulink\b/,"num");s.innerHTML=b.innerHTML;b.replaceWith(s)});
+  sh.querySelectorAll("[id]").forEach(e=>e.removeAttribute("id"));
+  return sh;
+}
+
+async function makePdf(){
+  const btn=$("dlpdf"),msg=$("dlmsg");if(btn.disabled||!D)return;
+  btn.disabled=true;msg.className="";msg.textContent=dt("wait");
+  let box=null;const keepN=txN;
+  try{
+    try{await pdfLibs()}catch(e){msg.className="err";msg.textContent=dt("net");return}
+    try{await document.fonts.ready}catch(e){}
+    /* type view: put more transactions in the file than the screen shows */
+    let shownNote="";
+    if(selType&&!sel&&view!=="master"){const all=live(view)?txList(view,selType).filter(x=>txF==="all"||x.t===txF):[];
+      txN=Math.max(keepN,100);renderType();if(all.length>txN)shownNote=dt("shown")(txN,all.length)}
+    const shot=await mapShot();const ti=reportTitle();
+    const sheet=cleanSheet();
+    if(txN!==keepN){txN=keepN;renderType()}
+    box=document.createElement("div");box.className="pdfrep";box.dir=t("dir");box.lang=L;
+    const today=new Date().toISOString().slice(0,10);
+    box.innerHTML=`<div class="pdfhead"><div><div class="k">DAMAC Lagoons · ${esc(dt("kind"))}</div><h1>${esc(ti.h)}</h1></div>
+      <div class="m"><div>${esc(t("lper"))}: ${esc(perLbl())}</div>${D.updated?`<div>${esc(t("upd")||"")}${esc(mon(D.updated))}</div>`:""}<div>${esc(dt("made"))}: ${esc(mon(today))}</div></div></div>`;
+    if(shot){const maxW=722,maxH=520;let w=maxW,h=maxW*shot.h/shot.w;if(h>maxH){h=maxH;w=maxH*shot.w/shot.h}
+      const im=new Image();im.className="pdfmap";im.src=shot.src;im.width=Math.round(w);im.height=Math.round(h);im.style.width=Math.round(w)+"px";im.style.height=Math.round(h)+"px";
+      try{await im.decode()}catch(e){} box.appendChild(im)}
+    box.appendChild(sheet);
+    if(shownNote){const p=document.createElement("p");p.className="tbasis";p.textContent=shownNote;box.appendChild(p)}
+    const ft=document.createElement("div");ft.className="pdffoot";ft.textContent=t("foot");box.appendChild(ft);const fc=document.createElement("div");fc.className="pdfcredit";fc.textContent=(agentText()?agentText()+"  ·  ":"")+CREDIT;box.appendChild(fc);
+    document.body.appendChild(box);
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+
+    /* page breaks only between blocks or table rows */
+    const bt=box.getBoundingClientRect().top,TH=box.scrollHeight;
+    const cuts=new Set([TH]);
+    box.querySelectorAll(".pdfhead,.pdfmap,.figs,.figs3,.kv,.kv dd,.box,.trow,tbody tr,.tbl,.types>div,.estwhy,.tbasis,.pdffoot,.sheet>*").forEach(e=>{const r=e.getBoundingClientRect();if(r.height)cuts.add(Math.round(r.bottom-bt))});
+    const C=[...cuts].sort((a,b)=>a-b);
+    const PW=794,PH=1123,M=26,avail=PH-2*M;
+    const pages=[];let s=0;
+    while(s<TH-40){let e=s;for(const y of C){if(y>s&&y<=s+avail)e=y}if(e<=s)e=Math.min(TH,s+avail);pages.push([s,e]);s=e}
+
+    const scale=Math.max(1,Math.min(2,Math.sqrt(14e6/(PW*TH))));
+    const cvs=await window.html2canvas(box,{scale,backgroundColor:"#ffffff",useCORS:true,logging:false,width:PW,height:TH});
+    const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:"mm",format:"a4",compress:true});
+    const mm=210/PW;
+    pages.forEach(([a,b],i)=>{if(i)doc.addPage();
+      const pc=document.createElement("canvas");pc.width=Math.round(PW*scale);pc.height=Math.max(1,Math.round((b-a)*scale));
+      const g=pc.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,pc.width,pc.height);
+      g.drawImage(cvs,0,Math.round(a*scale),pc.width,pc.height,0,0,pc.width,pc.height);
+      doc.addImage(pc.toDataURL("image/jpeg",.92),"JPEG",0,M*mm,210,(b-a)*mm,undefined,"FAST");
+      doc.setFontSize(8);doc.setTextColor(120);doc.text(`${i+1} / ${pages.length}`,105,292,{align:"center"});doc.setFontSize(7);doc.text(CREDIT_PDF,105,288,{align:"center"})});
+    const name=`${ti.f}_${PER==="c"?CF+"_"+CT:PER+"m"}_${L.toUpperCase()}_${today}.pdf`.replace(/[^\w.\-]+/g,"_");
+    const blob=doc.output("blob");
+
+    let dl=null;try{dl=window.claude&&window.claude.use?await window.claude.use("downloads"):null}catch(e){}
+    if(dl){
+      try{const r=await dl.save({filename:name,data:blob});msg.textContent=r&&r.status==="delivered"?"":dt("ok")}
+      catch(e){const code=e&&e.code;
+        if(code==="declined"){msg.textContent=dt("decl")}
+        else if(code==="rate_limited"){msg.textContent=""}
+        else{try{doc.save(name);msg.textContent=""}catch(_){msg.className="err";msg.textContent=dt("fail")}}}
+    } else {doc.save(name);msg.textContent=""}
+  }catch(e){console.error(e);msg.className="err";msg.textContent=dt("fail");if(txN!==keepN){txN=keepN;renderType()}}
+  finally{if(box)box.remove();btn.disabled=false}
+}
+$("dlpdf").addEventListener("click",makePdf);
+
+/* ---------- boot ---------- */
+staticText();
+fetch("data/data.json").then(r=>r.json()).then(j=>{
+  D=j;
+  for(const id of D.order){const c=D.C[id];
+    if(id==="cb"){c.code=k=>k;c.num=k=>+k.slice(1);c.keyOf=(p,n)=>p?(p+n):null}
+    else if(id==="pf"){c.code=k=>(c.units[k]&&c.units[k].dl?"DL":"BL")+k;c.num=k=>+k;c.keyOf=(p,n)=>String(+n)}
+    else if(c.multi){c.code=k=>k;c.num=k=>+k.replace(/^\D+/,"");c.keyOf=(p,n)=>p?p+String(+n):null}
+    else {const P=c.pref[0]||"";c.code=k=>P+k;c.num=k=>+k;c.keyOf=(p,n)=>String(+n)}
+    c._id=id}
+  Object.assign(SNAP,D.SNAP||{});
+  if(D.updated){I.ar.upd="آخر تحديث للبيانات: ";I.en.upd="Data last updated: ";I.zh.upd="数据最后更新：";const f=$("foot");const sp=document.createElement("div");sp.id="upd";f.after(sp);sp.className="hint";const put=()=>{sp.textContent=t("upd")+mon(D.updated)};put();document.querySelector(".lang").addEventListener("click",()=>setTimeout(put,0))}
+  clusterChips();
+  $("cls").onclick=e=>{const b=e.target.closest(".cl");if(b)openCluster(b.dataset.c)};
+  const h=decodeURIComponent((location.hash||"").slice(1));
+  if(h&&D.C[h]) openCluster(h);
+  else if(h){openMaster();$("q").value=h;go(h)}
+  else openMaster();
+}).catch(()=>{$("sheet").innerHTML=`<p class="err">${t("loadErr")}</p>`});
+</script>
+
+</body></html>

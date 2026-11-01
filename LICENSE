@@ -1,0 +1,26 @@
+The Lagoons Property Finder License
+Copyright © 2026 Ahmed Aladdin (أحمد علاء الدين). All rights reserved.
+
+This repository ("Lagoons Property Finder": the tool, its templates, scripts, unit-type
+classifications, unit positions and documentation) is licensed to you on these terms:
+
+1. USE. You may use it, free of charge, for yourself and your own clients, including in your
+   work as a real estate broker or agent.
+2. CREDIT. The tool and every report or PDF it produces must keep the visible line
+   "Lagoons Property Finder v<version> © 2026 Ahmed Aladdin | أحمد علاء الدين · @aladdin.therealtor",
+   and every copy of the code must keep this license and the copyright notices.
+   You may add your own name, company and contact details next to it (config/agent.js),
+   but not in place of it.
+3. NO RESALE. You may not sell, sublicense, or offer the tool, its templates or its code
+   (as-is or modified) as a product or service of its own, or present it as your own work.
+4. CHANGES. You may modify it for your own use. Modified versions remain under this license
+   and must keep the credit line and notices.
+5. THIRD-PARTY DATA. Transaction data, plan images and brochures are not part of this
+   repository. You are responsible for having the right to use any data or images you add.
+6. NO WARRANTY. It is provided "as is", without warranty of any kind. Figures are estimates
+   built from public records, not financial advice; you are responsible for checking the data
+   and for how the tool and its reports are used. The author is not liable for any loss
+   arising from its use.
+
+For any other use (including commercial licensing or removing the credit), contact
+Ahmed Aladdin: https://www.instagram.com/aladdin.therealtor
